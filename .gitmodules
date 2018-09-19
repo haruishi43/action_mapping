@@ -1,6 +1,6 @@
 [submodule "Chainer_Realtime_Multi-Person_Pose_Estimation"]
-	path = Chainer_Realtime_Multi-Person_Pose_Estimation
+	path = openpose
 	url = https://github.com/Toraudonn/Chainer_Realtime_Multi-Person_Pose_Estimation.git
 [submodule "Chainer_Mask_R-CNN"]
-	path = Chainer_Mask_R-CNN
+	path = maskrcnn
 	url = https://github.com/Toraudonn/Chainer_Mask_R-CNN.git
