@@ -172,7 +172,6 @@ class Joints:
         
         return geometries
 
-import time
 
 class CustomVisualizer:
 
@@ -186,7 +185,7 @@ class CustomVisualizer:
         
         h, w = self._get_window_size()
         self.vis = o3.Visualizer()
-        self.vis.create_window('pose', width=int(w), height=int(h), left=50, right=50)
+        self.vis.create_window('pose', width=int(w), height=int(h))
         self.vis.add_geometry(self.base)
 
         self.render_option = self.vis.get_render_option().load_from_json(
@@ -196,14 +195,12 @@ class CustomVisualizer:
         self.custom_view()
         self.vis.update_renderer()
         self.vis.run()
-    
 
     def _get_window_size(self):
         intrinsics = o3.read_pinhole_camera_intrinsic("static_data/pinholeCameraIntrinsic.json")
         h = intrinsics.height
         w = intrinsics.width
         return h, w
-
 
     def update_geometry(self, pcd):
         
