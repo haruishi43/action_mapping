@@ -41,10 +41,10 @@ def calc_xy(x, y, z, K):
     return _x, _y
 
 
-def downsample_nparray(arr, ratio=1):  # arr = [[x, y, z], [...] ]
+def downsample_nparray(arr):  # arr = [[x, y, z], [...] ]
     pcd = o3.PointCloud()
     pcd.points = o3.Vector3dVector(arr)
-    downpcd = o3.voxel_down_sample(pcd, voxel_size = (10*ratio))  # 5 millimeters
+    downpcd = o3.voxel_down_sample(pcd, voxel_size=500) 
     return np.asarray(downpcd.points)
 
 
@@ -94,7 +94,7 @@ def get_object(depths, K, P, labels, masks, scores):
         # Get all indicies that has depth points
         non_zero_indicies = np.nonzero(mask_flattened)[0]
 
-        image_size = len(depths.flatten())
+        # image_size = len(depths.flatten())
         mask_size = len(non_zero_indicies)
 
         points = np.zeros((mask_size, 3))
@@ -111,7 +111,7 @@ def get_object(depths, K, P, labels, masks, scores):
             # append to points
             points[j] = convert2world(np.asarray([X, Y, Z]), P)
         
-        downsampled_points = downsample_nparray(points, mask_size/image_size)
+        downsampled_points = downsample_nparray(points)
         
         title = str(label) + '_' + str(objects[label])
         object_masks[title] = downsampled_points
