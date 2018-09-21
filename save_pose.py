@@ -3,7 +3,6 @@ import sys
 import os
 from datetime import datetime as datetime
 
-
 import numpy as npd
 import matplotlib.pyplot as plot
 from datetime import datetime as dt
@@ -13,9 +12,9 @@ from save_object_pose import *
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Object Getter')
-    parser.add_argument('--data', default='/mnt/extHDD/raw_data',help='relative data path from where you use this program')
-    parser.add_argument('--save', default='./data',help='relative saving directory from where you use this program')
+    parser = argparse.ArgumentParser(description='Pose Getter')
+    parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
+    parser.add_argument('--save', default= './data',help='relative saving directory from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
@@ -32,7 +31,7 @@ if __name__ == "__main__":
     P = o3_chain.get_P()
 
     # Intialize Models:
-    maskrcnn = MaskRCNN(0)
+    openpose = OpenPose(0)
 
     for datetime in datetimes:
         datetime_save_dir = dm.get_save_directory(datetime)
@@ -60,7 +59,7 @@ if __name__ == "__main__":
 
                 if dm.check_path_exists(file_save_path):
                     
-                    #TODO: open the file and see if masks are in it
+                    #TODO: open the file and see if poses are in it
 
                     continue
                     
@@ -75,16 +74,14 @@ if __name__ == "__main__":
                 rgb = o3_chain.get_rgb()
                 depths = o3_chain.get_depths()
 
-                # MASKRCNN
-                _, labels, scores, masks = maskrcnn.predict(
-                    rgb.swapaxes(2, 1).swapaxes(1, 0))
-                dict_masks = get_object(depths, K, P, labels, masks, scores)
+                # OpenPose
+                poses, scores = openpose.predict(rgb)
+                dict_poses = get_pose(depths, K, P, poses, scores)
 
-                
                 # save the files as npz
-                if not len(dict_masks):
+                if not len(dict_poses):
                     continue
                 else:
-                    np.savez_compressed(file_save_path, masks=dict_masks)
+                    np.savez_compressed(file_save_path, dict_poses=dict_poses)
                     print("saved")
-
+    

@@ -121,13 +121,13 @@ def get_object(depths, K, P, labels, masks, scores):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Pose Getter')
+    parser = argparse.ArgumentParser(description='Object Pose Getter')
     parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
-    parser.add_argument('--save', default= 'pose',help='relative saving directory from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     print('Getting data from: {}'.format(args.data))
+    # saving to mnt
     dm = DataManagement(args.data)
     after = dt(2018, 9, 9, 0, 0, 0)
     before = dt(2018, 9, 10, 0, 0, 0)
