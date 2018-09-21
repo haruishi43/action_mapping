@@ -45,7 +45,7 @@ def calc_xy(x, y, z, K):
 def downsample_nparray(arr):  # arr = [[x, y, z], [...] ]
     pcd = o3.PointCloud()
     pcd.points = o3.Vector3dVector(arr)
-    downpcd = o3.voxel_down_sample(pcd, voxel_size=500) 
+    downpcd = o3.voxel_down_sample(pcd, voxel_size=10) 
     return np.asarray(downpcd.points)
 
 
@@ -78,8 +78,7 @@ def get_pose(depths, K, P, poses, scores):
 
 
 def get_object(depths, K, P, labels, masks, scores):
-    object_bbox = {}
-    object_center = {}
+    object_masks = {}
     objects = defaultdict(int)
     w = 1280  # image width
 
@@ -95,12 +94,12 @@ def get_object(depths, K, P, labels, masks, scores):
         mask_flattened = mask_with_depth.flatten()
         # Get all indicies that has depth points
         non_zero_indicies = np.nonzero(mask_flattened)[0]
+
+        ratio = 5
+        if non_zero_indicies.shape[0] > 7000:
+            ratio = 10
         
-        ratio = 10
-        if non_zero_indicies.shape[0] > 10000:
-            ratio = 100
-        
-        if non_zero_indicies.shape[0] < 100:
+        if non_zero_indicies.shape[0] < 700:
             ratio = 1
 
         random_indecies = np.random.choice(non_zero_indicies.shape[0], int(non_zero_indicies.shape[0] / ratio))
@@ -109,52 +108,37 @@ def get_object(depths, K, P, labels, masks, scores):
 
         mask_size = len(non_zero_indicies)
         points = np.zeros((mask_size, 3))
-
         for j, index in enumerate(non_zero_indicies):
-            x, y = index % w, index // w
-            
             Z = mask_flattened[index]
+            
+            x, y = index % w, index // w
+
             # get X and Y converted from pixel (x, y) using Z and intrinsic
             X, Y = calc_xy(x, y, Z, K)
+            # print('x: {}, y: {}, depth: {}'.format(X, Y, Z))
+
+            # append to points
             points[j] = convert2world(np.asarray([X, Y, Z]), P)
-
-        max_x, max_y, max_z = np.amax(points, 0)
-        min_x, min_y, min_z = np.amin(points, 0)
-
-        bbox = np.array([[max_x, max_y, max_z],
-                         [max_x, max_y, min_z],
-                         [max_x, min_y, max_z],
-                         [max_x, min_y, min_z],
-                         [min_x, min_y, max_z],
-                         [min_x, min_y, min_z],
-                         [min_x, max_y, max_z],
-                         [min_x, max_y, min_z]])
-
-        center = np.array([(max_x+min_x)/2,
-                           (max_y+min_y)/2,
-                           (max_z+min_z)/2])
-
+        
+        downsampled_points = downsample_nparray(points)
         title = str(label) + '_' + str(objects[label])
-        object_bbox[title] = bbox
-        object_center[title] = center
+        object_masks[title] = downsampled_points
         objects[label] += 1
 
-    return object_bbox, object_center
+    return object_masks
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Pose Getter')
     parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
-    parser.add_argument('--save', default= './data',help='relative data path from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     print('Getting data from: {}'.format(args.data))
-    print('Saving data to: {}'.format(args.save))
     # saving to mnt
-    dm = DataManagement(args.data, args.save)
-    after = dt(2018, 9, 9, 13, 7, 0)
-    before = dt(2018, 9, 9, 13, 16, 0)
+    dm = DataManagement(args.data)
+    after = dt(2018, 9, 9, 0, 0, 0)
+    before = dt(2018, 9, 10, 0, 0, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
@@ -206,24 +190,27 @@ if __name__ == "__main__":
                 depths = o3_chain.get_depths()
 
                 # OpenPose
-                poses, scores = openpose.predict(rgb)  # 0.115
+                poses, scores = openpose.predict(rgb)
+                
                 # MASKRCNN
                 _, labels, scores, masks = maskrcnn.predict(
-                    rgb.swapaxes(2, 1).swapaxes(1, 0))  # 0.210
+                    rgb.swapaxes(2, 1).swapaxes(1, 0))
 
-                dict_poses = get_pose(depths, K, P, poses, scores)  # 8.5e-06
-                dict_bbox, dict_center = get_object(depths, K, P, labels, masks, scores)  # 0.055
-
-                # save the files as npz  (timed around 0.009)
+                dict_poses = get_pose(depths, K, P, poses, scores)
+                dict_masks = get_object(depths, K, P, labels, masks, scores)
+                
+                # save the files as npz
                 if not len(dict_poses):
-                    if not len(dict_bbox):
+                    if not len(dict_masks):
                         continue
                     else:
-                        np.savez_compressed(file_save_path, bbox=dict_bbox, center=dict_center)
+                        np.savez_compressed(file_save_path, masks=dict_masks)
                         print("saved")
                 else:
-                    if not len(dict_bbox):
+                    if not len(dict_masks):
                         np.savez_compressed(file_save_path, poses=dict_poses)
                     else:
-                        np.savez_compressed(file_save_path, poses=dict_poses, bbox=dict_bbox, center=dict_center)
+                        np.savez_compressed(file_save_path, poses=dict_poses, masks=dict_masks)
+
                     print("saved")
+                

@@ -29,7 +29,7 @@ if __name__=='__main__':
     dm = DataManagement()
     static_path = os.path.join('./static_data')
 
-    after = dt(2018, 9, 9, 13, 8, 0)
+    after = dt(2018, 9, 9, 13, 2, 0)
     before = dt(2018, 9, 9, 13, 9, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
@@ -39,7 +39,7 @@ if __name__=='__main__':
     data_path = dm.get_save_directory(datetime)
 
     files = os.listdir(data_path)
-    filename = files[33]
+    filename = files[446]
 
     file_path = os.path.join(data_path, filename)
 
