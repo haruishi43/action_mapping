@@ -35,7 +35,7 @@ class Joint:
             _coord = np.concatenate([np.asarray(coord), [1.000]])
             _P = np.array(P)
             #FIXME: Remove this when P is fixed
-            rotate = np.array([[1,0,0,0], [0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
+            rotate = np.array([[1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
             n = rotate.dot(_coord)
             return _P.dot(n)[:3]
 

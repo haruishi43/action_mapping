@@ -22,8 +22,6 @@ def main():
     # item(dm, datetimes)
     pose(dm, datetimes)
 
-    
-
 
 def pose(dm, datetimes):
     joint_val = JointType.RightHand.value

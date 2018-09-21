@@ -8,9 +8,11 @@ class Open3D_Chain:
     '''
     Open3D Chain for easy rendering
     '''
-    def __init__(self):
+    def __init__(self, pname='T.csv'):
         self.camera_intrinsic = o3.read_pinhole_camera_intrinsic("static_data/realsense_intrinsic.json")
         self.K = np.asarray(self.camera_intrinsic.intrinsic_matrix)
+        P_matrix_filename = os.path.join('static_data', pname)
+        self.P = np.loadtxt(P_matrix_filename, delimiter=',')
 
     def change_image(self, rgb_path, depths_path):
         assert os.path.exists(rgb_path), 'Could not find corresponding rgb image in: {}'.format(rgb_path)
@@ -47,7 +49,7 @@ class Open3D_Chain:
     
     def get_pcd(self):
         pcd = o3.create_point_cloud_from_rgbd_image(self.rgbd, self.camera_intrinsic)
-        # change view
+        # create_point_cloud_from_rgbd_image makes it to be 1cm instead of 1mm and is flipped in the x axis
         pcd.transform(
             [[1000, 0, 0, 0], 
              [0, -1000, 0, 0], 
@@ -78,6 +80,16 @@ class Open3D_Chain:
         _y = (y - v0) * z / fy
         return _x, _y
 
+    def convert2world(self, coord):
+        '''
+        Convert from Camera coordniate to World coordinate (according to P)
+        '''
+        _coord = np.concatenate([np.asarray(coord), [1.000]])
+        # For visualization, flip it in x-axis
+        rotate = np.array([[1,0,0,0], [0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
+        n = rotate.dot(_coord)
+        return self.P.dot(n)[:3]
+
     def compare_with_room(self):
         pc_room = o3.read_point_cloud('static_data/room_A.ply')
         pcd = self.get_pcd()
@@ -86,6 +98,13 @@ class Open3D_Chain:
         pcd.transform(P)
 
         o3.draw_geometries([pc_room, pcd])
+
+    def downsample_nparray(self, arr, ratio=1):  # arr = [[x, y, z], [...] ]
+        pcd = o3.PointCloud()
+        pcd.points = o3.Vector3dVector(arr)
+        downpcd = o3.voxel_down_sample(pcd, voxel_size = (10*ratio))  # 5 millimeters
+        return np.asarray(downpcd.points)
+
 
 
 if __name__ == "__main__":
