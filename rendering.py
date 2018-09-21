@@ -1,18 +1,20 @@
 import chainer
 import open3d as o3
 import numpy as np
-import csv
-import cv2
-from pprint import pprint 
 
 import argparse
 import sys
 import os
 import time
 
+from utils import poses_masks_from_npz
+
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 abs_op_lib = os.path.join(dir_path, 'openpose')
 from openpose import params, JointType
+
+
 
 
 class Joint:
@@ -24,20 +26,20 @@ class Joint:
             index: joint index
             coord: joint's camera coordinate
             '''
-            self.point = self.convert2world(P, coord)
+            self.point = coord
             self.index = index
             self.name = JointType(index).name
 
-        def convert2world(self, P, coord):
-            '''
-            Convert from Camera coordniate to World coordinate (according to P)
-            '''
-            _coord = np.concatenate([np.asarray(coord), [1.000]])
-            _P = np.array(P)
-            #FIXME: Remove this when P is fixed
-            rotate = np.array([[1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
-            n = rotate.dot(_coord)
-            return _P.dot(n)[:3]
+        # def convert2world(self, P, coord):
+        #     '''
+        #     Convert from Camera coordniate to World coordinate (according to P)
+        #     '''
+        #     _coord = np.concatenate([np.asarray(coord), [1.000]])
+        #     _P = np.array(P)
+        #     #FIXME: Remove this when P is fixed
+        #     rotate = np.array([[1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
+        #     n = rotate.dot(_coord)
+        #     return _P.dot(n)[:3]
 
 
 class Joints:
@@ -46,9 +48,9 @@ class Joints:
         assert len(raw_jnts) == 18, "Not enough points to make Joints."
         self.P = P
         self.joints = {}
-
+        nan = np.nan
         for i, jointType in enumerate(JointType):
-            if (raw_jnts[i] == [0, 0, 0]).all():
+            if (raw_jnts[i] == [nan, nan, nan]).all():
                 # create a zero vector for place holder
                 self.joints[jointType.name] = np.zeros(3)
             else:
@@ -223,10 +225,11 @@ class CustomVisualizer:
         extrinsic = self.trajectory.extrinsic
         ctr.convert_from_pinhole_camera_parameters(intrinsic, np.asarray(extrinsic)[0])
 
+# ROOT: /mnt/extHDD/save_data/
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Pose Getter')
-    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180909_1316/',help='relative data path from where you use this program')
+    parser.add_argument('--data', default= './data/20180909_1316/',help='relative data path from where you use this program')
     parser.add_argument('--static', default='static_data', help='static data location')
     args = parser.parse_args()
 
@@ -245,24 +248,24 @@ if __name__ == '__main__':
     room_ply = os.path.join(static_path, 'room_A.ply')
     pc_room = o3.read_point_cloud(room_ply)
 
-    # pose path
-    pose_path = os.path.join(data_path, 'pose')
-
     # initialize visualizer
     vis = CustomVisualizer(pc_room)
     vis.intialize_visualizer()
 
-    files = os.listdir(pose_path)
+    files = os.listdir(data_path)
     filenames = sorted(files, key=lambda f: int(''.join(filter(str.isdigit, f))))
 
     for fn in filenames:  #FIXME: didn't sort by number, but name
-        if fn.endswith('.csv'):
-            print(fn)
-            # get joints data and turn it into numpy array
-            csv_path = os.path.join(pose_path, fn)
-            raw_joints = np.loadtxt(csv_path, delimiter=',')
-            
-            joints = Joints(P, raw_joints)
+        print(fn)
+        file_path = os.path.join(data_path, fn)
+        poses, _ = poses_masks_from_npz(file_path)
+
+        if not (poses is None):
+            pose_ids = list(poses.keys())
+            print("number of poses: ", len(pose_ids))
+
+
+            joints = Joints(P, poses[pose_ids[0]])
             # get skeleton geometries
             
             pc_joints = joints.create_skeleton_geometry()

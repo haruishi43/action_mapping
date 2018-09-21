@@ -137,8 +137,8 @@ if __name__ == "__main__":
     print('Getting data from: {}'.format(args.data))
     # saving to mnt
     dm = DataManagement(args.data)
-    after = dt(2018, 9, 9, 0, 0, 0)
-    before = dt(2018, 9, 10, 0, 0, 0)
+    after = dt(2018, 9, 9, 13, 16, 0)
+    before = dt(2018, 9, 9, 13, 17, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
