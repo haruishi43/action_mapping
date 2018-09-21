@@ -39,7 +39,6 @@ class Open3D_Chain:
             return np.asarray(self.rgbd.color)
         else:
             print("No RGB-D created!")
-        
 
     def get_depths(self, rgbd=False):
         if rgbd:
@@ -56,6 +55,12 @@ class Open3D_Chain:
              [0, 0, -1000, 0], 
              [0, 0, 0, 1]])
         return pcd
+
+    def get_K(self):
+        return self.K
+
+    def get_P(self):
+        return self.P
 
     def save_pcd(self):
         pcd = self.get_pcd()

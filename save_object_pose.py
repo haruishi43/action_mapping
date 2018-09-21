@@ -3,23 +3,52 @@ import argparse
 import multiprocessing as mp
 from datetime import datetime as dt
 from collections import defaultdict
-import time
 
 import numpy as np
+import open3d as o3
 
 from open3d_chain import Open3D_Chain
 from getter_models import MaskRCNN, OpenPose, coco_label_names, JointType
 from utils import DataManagement
 
 
-def get_pose(openpose, q_pose, rgb_img, depth_img):
-    # camera params
-    o3_chain = Open3D_Chain()
-    o3_chain.change_image(rgb_img, depth_img)
-    rgb = o3_chain.get_rgb()
-    depths = o3_chain.get_depths()
-    poses, scores = openpose.predict(rgb)
-    
+def convert2world(coord, P):
+    '''
+    Convert from Camera coordniate to World coordinate (according to P)
+    '''
+    _coord = np.concatenate([np.asarray(coord), [1.000]])
+    # For visualization, flip it in x-axis
+    rotate = np.array([[1,0,0,0], [0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
+    n = rotate.dot(_coord)
+    return P.dot(n)[:3]
+
+
+def calc_xy(x, y, z, K):
+    '''
+    K: intrinsic matrix
+    x: pixel value x
+    y: pixel value y
+    z: mm value of z
+    '''
+
+    fx = K[0][0]
+    fy = K[1][1]
+    u0 = K[0][2]
+    v0 = K[1][2]
+
+    _x = (x - u0) * z / fx
+    _y = (y - v0) * z / fy
+    return _x, _y
+
+
+def downsample_nparray(arr, ratio=1):  # arr = [[x, y, z], [...] ]
+    pcd = o3.PointCloud()
+    pcd.points = o3.Vector3dVector(arr)
+    downpcd = o3.voxel_down_sample(pcd, voxel_size = (10*ratio))  # 5 millimeters
+    return np.asarray(downpcd.points)
+
+
+def get_pose(depths, K, P, poses, scores):
     pose_dict = {}
 
     poses_num = 0
@@ -33,27 +62,21 @@ def get_pose(openpose, q_pose, rgb_img, depth_img):
 
         for j, joint in enumerate(pose):
             x, y = int(joint[0]), int(joint[1])
-            Z = o3_chain.get_depths()[y][x]
+            Z = depths[y][x]
 
             if Z != 0.0:
                 # Depth = 0 means that depth data was unavailable
-                X, Y = o3_chain.calc_xy(x, y, Z)
-                joints[j] = o3_chain.convert2world(np.asarray([X, Y, Z]))
+                X, Y = calc_xy(x, y, Z, K)
+                joints[j] = convert2world(np.asarray([X, Y, Z]), P)
                 # print('x: {}, y: {}, depth: {}'.format(X, Y, Z))
 
         pose_dict[poses_num] = joints
         poses_num += 1
+    
+    return pose_dict
 
-    q_pose.put((0, pose_dict))
 
-
-def get_object(maskrcnn, q_mask, rgb_img, depth_img):
-    o3_chain = Open3D_Chain()
-    o3_chain.change_image(rgb_img, depth_img)
-    rgb = o3_chain.get_rgb().swapaxes(2, 1).swapaxes(1, 0)
-    depths = o3_chain.get_depths()
-    _, labels, scores, masks = maskrcnn.predict(rgb)
-
+def get_object(depths, K, P, labels, masks, scores):
     object_masks = {}
     objects = defaultdict(int)
     w = 1280  # image width
@@ -82,27 +105,22 @@ def get_object(maskrcnn, q_mask, rgb_img, depth_img):
             x, y = index % w, index // w
 
             # get X and Y converted from pixel (x, y) using Z and intrinsic
-            X, Y = o3_chain.calc_xy(x, y, Z)
+            X, Y = calc_xy(x, y, Z, K)
             # print('x: {}, y: {}, depth: {}'.format(X, Y, Z))
 
             # append to points
-            points[j] = o3_chain.convert2world(np.asarray([X, Y, Z]))
+            points[j] = convert2world(np.asarray([X, Y, Z]), P)
         
-        downsampled_points = o3_chain.downsample_nparray(points, mask_size/image_size)
+        downsampled_points = downsample_nparray(points, mask_size/image_size)
         
-        title = name + str(objects[label])
+        title = str(label) + '_' + str(objects[label])
         object_masks[title] = downsampled_points
         objects[label] += 1
 
-    q_mask.put((1, object_masks))
-
-    
- 
+    return object_masks
 
 
 if __name__ == "__main__":
-    mp.set_start_method('forkserver')
-
     parser = argparse.ArgumentParser(description='Pose Getter')
     parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
     parser.add_argument('--save', default= 'pose',help='relative saving directory from where you use this program')
@@ -115,7 +133,10 @@ if __name__ == "__main__":
     before = dt(2018, 9, 10, 0, 0, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
-    
+    # camera params
+    o3_chain = Open3D_Chain()
+    K = o3_chain.get_K()
+    P = o3_chain.get_P()
 
     # Intialize Models:
     maskrcnn = MaskRCNN(0)
@@ -129,7 +150,7 @@ if __name__ == "__main__":
             print('Making a save directory in: {}'.format(datetime_save_dir))
             os.makedirs(datetime_save_dir)
         else:
-            continue
+            print("Directory exists")
 
         rgb_path = dm.get_rgb_path(datetime)
         depth_path = dm.get_depth_path(datetime)
@@ -142,6 +163,12 @@ if __name__ == "__main__":
         for fn in filenames:
             if fn.endswith(".png"): 
                 print('\nimage: ', fn)
+                filename = fn.split('.')[0] + '.npz'
+                file_save_path = os.path.join(datetime_save_dir, filename)
+
+                if dm.check_path_exists(file_save_path):
+                    print("File exists")
+                    continue
 
                 # find the corresponding depth image
                 rgb_img = os.path.join(rgb_path, fn)
@@ -150,45 +177,33 @@ if __name__ == "__main__":
                     print('Could not find corresponding depth image in: {}'.format(depth_img))
                     continue
 
-                out_q = mp.Queue()
+                o3_chain.change_image(rgb_img, depth_img)
+                rgb = o3_chain.get_rgb()
+                depths = o3_chain.get_depths()
+
+                # OpenPose
+                poses, scores = openpose.predict(rgb)
                 
-                p_openpose = mp.Process(target=get_pose, args=(openpose, out_q, rgb_img, depth_img))
-                p_maskrcnn = mp.Process(target=get_object, args=(maskrcnn, out_q, rgb_img, depth_img))
+                # MASKRCNN
+                _, labels, scores, masks = maskrcnn.predict(
+                    rgb.swapaxes(2, 1).swapaxes(1, 0))
 
-                p_maskrcnn.start()
-                p_openpose.start()
+                dict_poses = get_pose(depths, K, P, poses, scores)
+                dict_masks = get_object(depths, K, P, labels, masks, scores)
 
-                # wait till everything is over
-                p_maskrcnn.join()
-                p_openpose.join()
-
-                poses. masks = [out_q.get() for i in range(2)].sort()
-
-                print(poses)
-                print(masks)
-
-                filename = fn.split('.')[0] + '.npz'
-                file_save_path = os.path.join(datetime_save_dir, filename)
-
+                
                 # save the files as npz
-                if not poses:
-                    if not masks:
+                if not len(dict_poses):
+                    if not len(dict_masks):
                         continue
-                else:
-                    if not masks:
-                        np.savez_compressed(file_save_path, poses=poses)
                     else:
-                        np.savez_compressed(file_save_path, poses=poses, masks=masks)
+                        np.savez_compressed(file_save_path, masks=dict_masks)
+                        print("saved")
+                else:
+                    if len(dict_masks):
+                        np.savez_compressed(file_save_path, poses=dict_poses)
+                    else:
+                        np.savez_compressed(file_save_path, poses=dict_poses, masks=dict_masks)
 
-
-                print("saved")
+                    print("saved")
                 
-
-
-
-                
-
-
-
-
-

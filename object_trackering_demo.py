@@ -17,6 +17,44 @@ from maskrcnn import MaskRCNNResNet
 from maskrcnn import vis_bbox
 
 
+def process_one(color_image, depths_image, bboxes, labels, scores, masks, item_index):
+    all_depths = np.zeros([h, w])
+    items = np.where(labels == item_index)[0]
+    if items.any():
+        for item in items:
+            name = coco_label_names[item_index]
+            item_mask = masks[item]
+            item_depth = np.multiply(depths_image, item_mask)
+            all_depths = np.add(all_depths, item_depth)
+            # beautify:
+            y1, x1, y2, x2 = [int(n) for n in bboxes[item]]
+            cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
+            cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
+        
+        all_depths *= 255 / all_depths.max()
+
+    return all_depths
+    
+
+def process_all(color_image, depths_image, bboxes, labels, scores, masks):
+    all_depths = np.zeros([h, w])
+
+    if len(labels):
+        for i, label in enumerate(labels):
+            name = coco_label_names[label]
+            item_mask = masks[i]
+            item_depth = np.multiply(depths_image, item_mask)
+            all_depths = np.add(all_depths, item_depth)
+            # beautify:
+            y1, x1, y2, x2 = [int(n) for n in bboxes[i]]
+            cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
+            cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
+
+        all_depths *= 255 / all_depths.max()
+
+    return all_depths
+    
+
 if __name__ == '__main__':
 
     test_class_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, \
@@ -50,11 +88,11 @@ if __name__ == '__main__':
     model.to_gpu()
     bn_to_affine(model)
 
-    name = 'chair'
     w = 1280
     h = 720
-
+    name = 'chair'
     item_index = coco_label_names.index(name)
+    
     with PyRS(w=w, h=h) as pyrs:
         print('Modes:')
         print('\tExit:\tq')
@@ -70,31 +108,17 @@ if __name__ == '__main__':
             # Get images as numpy arrays
             color_image = pyrs.get_color_image()
             depths_image = pyrs.get_depths_frame()
-            all_depths = np.zeros([h, w])
-
             color = color_image.swapaxes(2, 1).swapaxes(1, 0)
+            
             bboxes, labels, scores, masks = model.predict([color])
-
             if len(labels) > 0:
                 bbox, label, score, mask = bboxes[0], np.asarray(labels[0], dtype=np.int32), scores[0], masks[0]
-                
-                items = np.where(label == item_index)[0]
-                if items.any():
-                    for item in items:
-                        item_mask = mask[item]
-                        item_depth = np.multiply(depths_image, item_mask)
-                        
-                        all_depths = np.add(all_depths, item_depth)
+                # all_depths = process_one(color_image, depths_image, bbox, label, score, mask, item_index)
+                all_depths = process_all(color_image, depths_image, bbox, label, score, mask)
+            else:
+                all_depths = np.zeros([h, w])
 
-                        # beautify:
-                        y1, x1, y2, x2 = [int(n) for n in bbox[item]]
-                        cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
-                        cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
-
-                    all_depths *= 255 / all_depths.max()
-            
             items_image = cv2.cvtColor(all_depths.astype(np.uint8), cv2.COLOR_GRAY2BGR)
-
             images = np.hstack((color_image, items_image))
             
             # Show image
