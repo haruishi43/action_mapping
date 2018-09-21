@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # saving to mnt
     dm = DataManagement(args.data, args.save)
     after = dt(2018, 9, 9, 13, 0, 0)
-    before = dt(2018, 9, 9, 14, 0, 0)
+    before = dt(2018, 9, 13, 18, 0, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params

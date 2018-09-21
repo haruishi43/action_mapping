@@ -8,7 +8,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from utils import DataManagement
+from utils import DataManagement, poses_masks_from_npz
+from getter_models import *
 
 sys.path.insert(0, 'openpose')  # append path of openpose
 from entity import params, JointType
@@ -27,26 +28,27 @@ def pose(dm, datetimes):
     joint_val = JointType.RightHand.value
     print(JointType(joint_val))
 
-    csv_files = []
+    files = []
     for datetime in datetimes: 
         data_path = dm.get_save_directory(datetime)
-        data_path = os.path.join(data_path, 'pose')
         if os.path.exists(data_path):
             sorted_files = dm.natural_sort(os.listdir(data_path))  # sorted files
-            csv_files = csv_files + [os.path.join(data_path, csv) for csv in sorted_files]
+            files = files + [os.path.join(data_path, f) for f in sorted_files]
 
-    P_matrix_filename = os.path.join('static_data', 'T.csv')
-    P = np.loadtxt(P_matrix_filename, delimiter=',')
+    print("number of file: ", len(files))
+    joint = np.zeros((len(files), 3))
+    for i, f in enumerate(files):
+        poses, _ = poses_masks_from_npz(f)
+        
+        if not(poses is None):
+            pose_ids = list(poses.keys()
+            points = poses[pose_ids[0]]
 
-    print("number of file: ", len(csv_files))
-    joint = np.zeros((len(csv_files), 3))
-    for i, csv in enumerate(csv_files):
-        points = np.loadtxt(csv, delimiter=',')
-        point = points[joint_val]
-        if (point == [0,0,0]).all():
-            joint[i] = np.asarray([np.nan, np.nan, np.nan])
-        else:
-            joint[i] = convert2world(P, point)
+            point = points[joint_val]
+            if (point == [0,0,0]).all():
+                joint[i] = np.asarray([np.nan, np.nan, np.nan])
+            else:
+                joint[i] = point
 
     joint.shape
     roll_joint = np.rollaxis(joint, 1)
@@ -55,31 +57,34 @@ def pose(dm, datetimes):
     show_location_map(roll_joint, JointType(joint_val))
 
 
-
 def item(dm, datetimes):
     ob_name = 'cup'
     
-    csv_files = []
+    files = []
     for datetime in datetimes:
         data_path = dm.get_save_directory(datetime)
-        data_path = os.path.join(data_path, 'objects')
-        ob_path = os.path.join(data_path, ob_name)
-        # print('objects: ', os.listdir(data_path))
         if os.path.exists(ob_path):
-            ordered_files = dm.natural_sort(os.listdir(ob_path))
-            csv_files = csv_files + [os.path.join(ob_path, csv) for csv in ordered_files]
+            ordered_files = dm.natural_sort(os.listdir(data_path))
+            files = files + [os.path.join(ob_path, f) for f in ordered_files]
     
-    print('number of files: ', len(csv_files))
+    print('number of files: ', len(files))
 
-    P_matrix_filename = os.path.join('static_data', 'T.csv')
-    P = np.loadtxt(P_matrix_filename, delimiter=',')
+    mean_of_points = []
+    for i, f in enumerate(files):
+        _, masks = poses_masks_from_npz(f)
 
-    mean_of_points = np.zeros((len(csv_files), 3))
-    for i, csv in enumerate(csv_files):
-        points = np.loadtxt(csv, delimiter=',')
-        mean = points.mean(0)
-        real_world = convert2world(P, mean)
-        mean_of_points[i] = real_world
+        if not(masks is None)
+        item_index = coco_label_names.index(name)
+
+        for mask in masks:
+            
+            # TODO:
+            # get string name
+            # check if the first digit is some class
+            # if so, append the mean
+
+            mean = points.mean(0)
+            mean_of_points.append(mean)
 
     mp = np.asarray(mean_of_points)
     mp = np.rollaxis(mp, 1)
@@ -136,18 +141,6 @@ def show_location_map(points, name):
     # im.set_data(xcenters, ycenters, H)
     # ax.images.append(im)
     plt.show()
-
-
-def convert2world(P, coord):
-    '''
-    Convert from Camera coordniate to World coordinate (according to P)
-    '''
-    _coord = np.concatenate([np.asarray(coord), [1.000]])
-    _P = np.array(P)
-    #FIXME: Remove this when P is fixed
-    rotate = np.array([[1,0,0,0], [0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
-    n = rotate.dot(_coord)
-    return _P.dot(n)[:3]
 
 
 

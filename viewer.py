@@ -30,17 +30,6 @@ class Joint:
             self.index = index
             self.name = JointType(index).name
 
-        # def convert2world(self, P, coord):
-        #     '''
-        #     Convert from Camera coordniate to World coordinate (according to P)
-        #     '''
-        #     _coord = np.concatenate([np.asarray(coord), [1.000]])
-        #     _P = np.array(P)
-        #     #FIXME: Remove this when P is fixed
-        #     rotate = np.array([[1,0,0,0],[0,-1,0,0],[0,0,-1,0],[0,0,0,1]])
-        #     n = rotate.dot(_coord)
-        #     return _P.dot(n)[:3]
-
 
 class Joints:
 
@@ -230,7 +219,7 @@ class CustomVisualizer:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Pose Getter')
-    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180909_1316/',help='relative data path from where you use this program')
+    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180913_1909/',help='relative data path from where you use this program')
     parser.add_argument('--static', default='static_data', help='static data location')
     args = parser.parse_args()
 
