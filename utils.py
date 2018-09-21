@@ -130,7 +130,22 @@ class DataManagement(FileManagement):
         datetimes = np.asarray(self.get_datetimes())
         return [t for t in datetimes if t >= after and t < before]
 
+
+def poses_masks_from_npz(file_path):
+    '''Loads pose and mask dictionary from npz'''
+    masks, poses = None, None
+    data = np.load(file_path)
+    files = data.files
+    if len(files):
+        if 'poses' in files:
+            poses = data['poses'][()]  # because it's a dict
+        
+        if 'masks' in files:
+            masks = data['masks'][()]
     
+    return poses, masks
+
+
 def main():
     # demo:
 

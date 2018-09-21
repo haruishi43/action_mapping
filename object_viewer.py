@@ -5,45 +5,44 @@ import numpy as np
 from datetime import datetime as dt
 
 from open3d_chain import Open3D_Chain
-from utils import DataManagement
+from utils import DataManagement, poses_masks_from_npz
 
 
-
-def main():
-    dm = DataManagement()
-    after = dt(2018, 7, 23, 14, 0, 0)
-    before = dt(2018, 7, 23, 14, 1, 0)
-    datetimes = dm.get_datetimes_in(after, before)
-
-    print(datetimes)
-
-    assert len(datetimes) == 1
-
-    datetime = datetimes[0]
-
-    data_path = dm.get_save_directory(datetime)
-    data_path = os.path.join(data_path, 'objects')
-
-    print(os.listdir(data_path))
-
-    ob_name = 'keyboard'
-    ob_path = os.path.join(data_path, ob_name)
-
-    # just get one
-    files = os.listdir(ob_path)
-    filename = files[0]
-    csv_path = os.path.join(ob_path, filename)
-    
-    np_pc = np.loadtxt(csv_path, delimiter=',')
-    pc = o3.PointCloud()
-    pc.points = o3.Vector3dVector(np_pc)
+def 
 
 
-    o3.draw_geometries([pc])
-
-
-    pass
 
 
 if __name__=='__main__':
-    main()
+    dm = DataManagement()
+    static_path = os.path.join('./static_data')
+
+    after = dt(2018, 9, 9, 0, 0, 0)
+    before = dt(2018, 9, 10, 0, 0, 0)
+    datetimes = dm.get_datetimes_in(after, before)
+
+    datetime = datetimes[2]
+    print(datetime)
+
+    data_path = dm.get_save_directory(datetime)
+
+    files = os.listdir(data_path)
+    filename = files[30]
+
+    file_path = os.path.join(data_path, filename)
+
+    _, masks = poses_masks_from_npz(file_path)
+    print(len(masks))
+
+    mask_ids = list(masks.keys())
+    mask_pcs = []
+    for id in mask_ids:
+        np_arr = masks[id]
+        mask_pcs.append(np_arr)
+
+    pc = o3.PointCloud()
+    pc.points = o3.Vector3dVector(np.concatenate(mask_pcs, axis=0))
+
+    room_ply = os.path.join(static_path, 'room_A.ply')
+    room = o3.read_point_cloud(room_ply)
+    o3.draw_geometries([room, pc])
