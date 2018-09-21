@@ -225,11 +225,12 @@ class CustomVisualizer:
         extrinsic = self.trajectory.extrinsic
         ctr.convert_from_pinhole_camera_parameters(intrinsic, np.asarray(extrinsic)[0])
 
+
 # ROOT: /mnt/extHDD/save_data/
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Pose Getter')
-    parser.add_argument('--data', default= './data/20180909_1316/',help='relative data path from where you use this program')
+    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180909_1316/',help='relative data path from where you use this program')
     parser.add_argument('--static', default='static_data', help='static data location')
     args = parser.parse_args()
 
@@ -258,17 +259,28 @@ if __name__ == '__main__':
     for fn in filenames:  #FIXME: didn't sort by number, but name
         print(fn)
         file_path = os.path.join(data_path, fn)
-        poses, _ = poses_masks_from_npz(file_path)
+        poses, masks = poses_masks_from_npz(file_path)
 
         if not (poses is None):
             pose_ids = list(poses.keys())
             print("number of poses: ", len(pose_ids))
 
-
             joints = Joints(P, poses[pose_ids[0]])
             # get skeleton geometries
             
             pc_joints = joints.create_skeleton_geometry()
+
+            pcd = o3.PointCloud()
+            if not (masks is None):
+                mask_ids = list(masks.keys())
+                mask_pcs = []
+                for id in mask_ids:
+                    np_arr = masks[id]
+                    mask_pcs.append(np_arr)
+                
+                pcd.points = o3.Vector3dVector(np.concatenate(mask_pcs, axis=0))
+
+            pc_joints.append(pcd)
 
             vis.update_geometry(pc_joints)
             
