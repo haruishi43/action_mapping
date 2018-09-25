@@ -7,14 +7,13 @@ import sys
 import os
 import time
 
+from getter_models import coco_label_colors
 from utils import poses_masks_from_npz
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 abs_op_lib = os.path.join(dir_path, 'openpose')
 from openpose import params, JointType
-
-
 
 
 class Joint:
@@ -219,7 +218,7 @@ class CustomVisualizer:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Pose Getter')
-    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180913_1909/',help='relative data path from where you use this program')
+    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180913_1908/',help='relative data path from where you use this program')
     parser.add_argument('--static', default='static_data', help='static data location')
     args = parser.parse_args()
 
@@ -259,18 +258,24 @@ if __name__ == '__main__':
             
             pc_joints = joints.create_skeleton_geometry()
 
-            pcd = o3.PointCloud()
+            pcds = []
             if not (masks is None):
                 mask_ids = list(masks.keys())
-                mask_pcs = []
                 for id in mask_ids:
+                    print(id)
+                    pcd = o3.PointCloud()
                     np_arr = masks[id]
-                    mask_pcs.append(np_arr)
-                
-                pcd.points = o3.Vector3dVector(np.concatenate(mask_pcs, axis=0))
+                    pcd.points = o3.Vector3dVector(np_arr)
+                    # pcd.points = o3.Vector3dVector(np.concatenate(mask_pcs, axis=0))
 
-            pc_joints.append(pcd)
+                    i = int(id.split('_')[0])
+                    color = coco_label_colors[i]
+                    pcd.paint_uniform_color(color)
+                    pcds.append(pcd)
 
-            vis.update_geometry(pc_joints)
+
+            pcds += pc_joints
+
+            vis.update_geometry(pcds)
             
             time.sleep(0.025)
