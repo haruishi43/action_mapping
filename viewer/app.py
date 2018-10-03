@@ -32,6 +32,7 @@ def video_feed():
 
 @app.route('/pose_feed')
 def pose_feed():
+    
     pass
 
 
