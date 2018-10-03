@@ -75,8 +75,8 @@ class BaseCamera(object):
         BaseCamera.last_access = time.time()
 
         # wait for a signal from the camera thread
-        BaseCamera.event.wait()
-        BaseCamera.event.clear()
+        BaseCamera.event.wait()  # 2
+        BaseCamera.event.clear()  # 3
 
         return BaseCamera.frame
 
@@ -92,7 +92,7 @@ class BaseCamera(object):
         frames_iterator = cls.frames()
         for frame in frames_iterator:
             BaseCamera.frame = frame
-            BaseCamera.event.set()  # send signal to clients
+            BaseCamera.event.set()  # send signal to clients  # 1
             time.sleep(0)
 
             # if there hasn't been any clients asking for frames in

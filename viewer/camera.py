@@ -98,8 +98,8 @@ class Camera(BaseCamera):
                     else:
                         all_depths = np.zeros([h, w])
 
-                    items_image = cv2.cvtColor(all_depths.astype(np.uint8), cv2.COLOR_GRAY2BGR)
-                    images = np.hstack((color_image, items_image))
-                    yield cv2.imencode('.jpg', images)[1].tobytes()
+                    # items_image = cv2.cvtColor(all_depths.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+                    # images = np.hstack((color_image, items_image))
+                    yield cv2.imencode('.jpg', color_image)[1].tobytes(), t
                     t = 0
                 t += 1
