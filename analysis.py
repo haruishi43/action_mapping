@@ -11,13 +11,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from utils import DataManagement, poses_masks_from_npz
 from getter_models import *
 
-sys.path.insert(0, 'openpose')  # append path of openpose
-from entity import params, JointType
 
 def main():
     dm = DataManagement()
-    after = dt(2018, 9, 9, 13, 7, 0)
-    before = dt(2018, 9, 9, 13, 16, 0)
+    after = dt(2018, 9, 13, 19, 8, 0)
+    before = dt(2018, 9, 13, 19, 9, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # item(dm, datetimes)
@@ -25,7 +23,7 @@ def main():
 
 
 def pose(dm, datetimes):
-    joint_val = JointType.RightHand.value
+    joint_val = JointType.Nose.value
     print(JointType(joint_val))
 
     files = []
@@ -41,7 +39,7 @@ def pose(dm, datetimes):
         poses, _ = poses_masks_from_npz(f)
         
         if not(poses is None):
-            pose_ids = list(poses.keys()
+            pose_ids = list(poses.keys())
             points = poses[pose_ids[0]]
 
             point = points[joint_val]
@@ -58,14 +56,14 @@ def pose(dm, datetimes):
 
 
 def item(dm, datetimes):
-    ob_name = 'cup'
+    ob_name = 'potted plant'
     
     files = []
     for datetime in datetimes:
         data_path = dm.get_save_directory(datetime)
-        if os.path.exists(ob_path):
+        if os.path.exists(data_path):
             ordered_files = dm.natural_sort(os.listdir(data_path))
-            files = files + [os.path.join(ob_path, f) for f in ordered_files]
+            files = files + [os.path.join(data_path, f) for f in ordered_files]
     
     print('number of files: ', len(files))
 
@@ -73,8 +71,10 @@ def item(dm, datetimes):
     for i, f in enumerate(files):
         _, masks = poses_masks_from_npz(f)
 
-        if not(masks is None)
-        item_index = coco_label_names.index(name)
+        if masks is None:
+            continue
+
+        item_index = coco_label_names.index(ob_name)
 
         for mask in masks:
             
@@ -82,11 +82,18 @@ def item(dm, datetimes):
             # get string name
             # check if the first digit is some class
             # if so, append the mean
+            id = int(mask.split('_')[0])
 
-            mean = points.mean(0)
-            mean_of_points.append(mean)
+            if id == item_index:
+                mean = masks[mask].mean(0)
+                mean_of_points.append(mean)
 
     mp = np.asarray(mean_of_points)
+
+    if mp.any() == False:
+        print("no such object ", ob_name, " detected")
+        return
+
     mp = np.rollaxis(mp, 1)
 
     # show_movement(mp)
