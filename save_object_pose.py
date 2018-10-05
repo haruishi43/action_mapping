@@ -68,7 +68,7 @@ def get_pose(depths, K, P, poses, scores):
             if Z != 0.0:
                 # Depth = 0 means that depth data was unavailable
                 X, Y = calc_xy(x, y, Z, K)
-                joints[j] = convert2world(np.asarray([X, Y, Z]), P)
+                joints[j] = +(np.asarray([X, Y, Z]), P)
                 # print('x: {}, y: {}, depth: {}'.format(X, Y, Z))
 
         pose_dict[poses_num] = joints
