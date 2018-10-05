@@ -34,7 +34,7 @@
 	<body>
         <h1>Video Streaming</h1>
         <img src="{{ url_for('video_feed') }}">
-
+		<p>This is the latest output: <span id="latest"></span></p>
         <h1>Mapping</h1>
         <script src="{{ url_for('static', filename='js/three.js') }}"></script>
         <script src="{{ url_for('static', filename='js/libs/stats.min.js') }}"></script>
@@ -44,9 +44,33 @@
         
 
 		<script>
-            // var ws = new WebSocket("ws://localhost:8000/pose_feed");
+			var latest = document.getElementById('latest');
 
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', "{{ url_for('pose_feed') }}");
+			xhr.send();
+			var position = 0;
 
+			function handleNewData() {
+				var messages = xhr.responseText.split('\n');
+				messages.slice(position, -1).forEach(function(value) {
+					latest.textContent = value;  // update the latest value in place
+				});
+				position = messages.length - 1;
+			}
+
+			var timer;
+			timer = setInterval(function() {
+				// check the response for new data
+				handleNewData();
+				// stop checking once the response has ended
+				if (xhr.readyState == XMLHttpRequest.DONE) {
+					clearInterval(timer);
+					latest.textContent = 'Done';
+				}
+			}, 1000);
+			
+			
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 			var container, stats;
             var camera, controls, scene, renderer;

@@ -52,8 +52,8 @@ class CameraEvent(object):
 
 
 class BaseCamera(object):
-    thread = None  # background thread that reads frames from camera
-    frame = None  # current frame is stored here by background thread
+    thread = None  # background thread that reads data from camera
+    data = None  # current data is stored here by background thread
     last_access = 0  # time of last client access to the camera
     event = CameraEvent()
 
@@ -62,11 +62,11 @@ class BaseCamera(object):
         if BaseCamera.thread is None:
             BaseCamera.last_access = time.time()
 
-            # start background frame thread
+            # start background data thread
             BaseCamera.thread = threading.Thread(target=self._thread)
             BaseCamera.thread.start()
 
-            # wait until frames are available
+            # wait until data are available
             while self.get_frame() is None:
                 time.sleep(0)
 
@@ -78,10 +78,10 @@ class BaseCamera(object):
         BaseCamera.event.wait()  # 2
         BaseCamera.event.clear()  # 3
 
-        return BaseCamera.frame
+        return BaseCamera.data
 
     @staticmethod
-    def frames():
+    def data():
         """"Generator that returns frames from the camera."""
         raise RuntimeError('Must be implemented by subclasses.')
 
@@ -89,16 +89,16 @@ class BaseCamera(object):
     def _thread(cls):
         """Camera background thread."""
         print('Starting camera thread.')
-        frames_iterator = cls.frames()
-        for frame in frames_iterator:
-            BaseCamera.frame = frame
+        data_iterator = cls.data()
+        for d in data_iterator:
+            BaseCamera.data = d
             BaseCamera.event.set()  # send signal to clients  # 1
             time.sleep(0)
 
             # if there hasn't been any clients asking for frames in
             # the last 10 seconds then stop the thread
-            if time.time() - BaseCamera.last_access > 10:
-                frames_iterator.close()
+            if time.time() - BaseCamera.last_access > 1000:
+                data_iterator.close()
                 print('Stopping camera thread due to inactivity.')
                 break
         BaseCamera.thread = None

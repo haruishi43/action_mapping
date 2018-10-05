@@ -61,11 +61,11 @@ class Camera(BaseCamera):
                 cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
 
             all_depths *= 255 / all_depths.max()
-
         return all_depths
 
+
     @staticmethod
-    def frames():
+    def data():
         # initialize models
 
         maskrcnn = MaskRCNN(0)
@@ -76,6 +76,7 @@ class Camera(BaseCamera):
 
         t = 0
         with PyRS(h=720, w=1280) as pyrs:
+
             while True:
                 if t % 4 == 0:
                     # Wait for a coherent pair of frames: depth and color
@@ -93,13 +94,13 @@ class Camera(BaseCamera):
                     color_image = Camera.draw_person_pose(color_image, poses)
 
                     if len(labels) > 0:
-                        # all_depths = process_one(color_image, depths_image, bbox, label, score, mask, item_index)
                         all_depths = Camera.process_all(color_image, depths_image, bboxes, labels, scores, masks)
                     else:
                         all_depths = np.zeros([h, w])
 
-                    tems_image = cv2.cvtColor(all_depths.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+                    items_image = cv2.cvtColor(all_depths.astype(np.uint8), cv2.COLOR_GRAY2BGR)
                     images = np.hstack((color_image, items_image))
-                    yield cv2.imencode('.jpg', images)[1].tobytes(), t
+                    yield cv2.imencode('.jpg', images)[1].tobytes()
                     t = 0
                 t += 1
+                

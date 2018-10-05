@@ -10,19 +10,13 @@ from camera import Camera
 
 app = Flask(__name__)
 
-def camera_gen(camera):
+def camera_gen(c):
     """Video streaming generator function."""
     while True:
-        frame, i = camera.get_frame()
+        frame = c.get_frame()
         # save pose?
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-
-def pose_gen(pose):
-    """Pose streaming generator function"""
-    while True:
-        filename = pose.get_filename()
 
 
 @app.route('/')
@@ -33,18 +27,12 @@ def index():
 @app.route('/video_feed')
 def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""
-    frame = camera_gen(Camera())
-    return Response(frame, mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(camera_gen(Camera()), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/pose_feed')
 def pose_feed():
-    if request.environ.get('wsgi.websocket'):
-        ws = request.environ['wsgi.websocket']
-        while True:
-            print("hello")
-            ws.send(json.dumps([{"hello": "hello"}]))
-    return
+    pass
 
 
 if __name__ == '__main__':
