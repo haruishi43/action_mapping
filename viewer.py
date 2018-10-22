@@ -18,10 +18,9 @@ from openpose import params, JointType
 
 class Joint:
 
-        def __init__(self, P, index, coord):
+        def __init__(self, index, coord):
             '''
             Init with
-            P: 4x4 Transform Matrix
             index: joint index
             coord: joint's camera coordinate
             '''
@@ -32,9 +31,8 @@ class Joint:
 
 class Joints:
 
-    def __init__(self, P, raw_jnts):
+    def __init__(self, raw_jnts):
         assert len(raw_jnts) == 18, "Not enough points to make Joints."
-        self.P = P
         self.joints = {}
         nan = np.nan
         for i, jointType in enumerate(JointType):
@@ -42,7 +40,7 @@ class Joints:
                 # create a zero vector for place holder
                 self.joints[jointType.name] = np.zeros(3)
             else:
-                joint = Joint(P, i, raw_jnts[i])
+                joint = Joint(i, raw_jnts[i])
                 self.joints[jointType.name] = joint.point
 
     def get_array(self):
@@ -229,10 +227,6 @@ if __name__ == '__main__':
     assert os.path.exists(static_path), "Could not find static data directory in the path: {}".format(static_path)
     print('Getting data from: {}'.format(data_path))
 
-    # Translation matrix
-    P_matrix_filename = os.path.join(static_path, 'T.csv')
-    P = np.loadtxt(P_matrix_filename, delimiter=',')
-
     # Load room
     room_ply = os.path.join(static_path, 'room_A.ply')
     pc_room = o3.read_point_cloud(room_ply)
@@ -253,7 +247,7 @@ if __name__ == '__main__':
             pose_ids = list(poses.keys())
             print("number of poses: ", len(pose_ids))
 
-            joints = Joints(P, poses[pose_ids[0]])
+            joints = Joints(poses[pose_ids[0]])
             # get skeleton geometries
             
             pc_joints = joints.create_skeleton_geometry()
@@ -262,7 +256,6 @@ if __name__ == '__main__':
             if not (masks is None):
                 mask_ids = list(masks.keys())
                 for id in mask_ids:
-                    print(id)
                     pcd = o3.PointCloud()
                     np_arr = masks[id]
                     pcd.points = o3.Vector3dVector(np_arr)

@@ -32,6 +32,8 @@
 		</style>
 	</head>
 	<body>
+		<script src="http://code.jquery.com/jquery-latest.js"></script>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
         <script src="{{ url_for('static', filename='js/three.js') }}"></script>
         <script src="{{ url_for('static', filename='js/libs/stats.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/libs/dat.gui.min.js') }}"></script>
@@ -41,13 +43,35 @@
         <script src="{{ url_for('static', filename='js/Detector.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/script.js') }}"></script>
 		
+		<!-- <script type="text/javascript" charset="utf-8">
+			// testing socketio
+			var socket = io.connect('http://' + document.domain + ':' + location.port);
+			
+			socket.on('connect', function() {
+				socket.emit('my event', {data: 'I\'m connected!'});
+			});
+
+			socket.on('my response', function( msg ) {
+				console.log( msg );
+			});
+
+		</script> -->
+
 		<script>
+			var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+			socket.on ('connect', function() {
+				socket.emit ('my event', {data: 'I\'m connected!'});
+			});
 			
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
 			// Global Variables
 			var container, stats, gui;
 			var scene, camera, renderer, orbit, lights, mesh, bones, skeletonHelper;
+			var poses = [];
+			var last = 0; // timestamp of the last render() call
+			var interval = 2; // 1/frame rate
 			
 			// Main Room Model
 			var roomModelURL = "{{ url_for('static', filename='models/ply/binary/new_room_edited.ply') }}";
@@ -57,12 +81,57 @@
 				animateBones : false
 			};
 
-			initThreeD(roomModelURL);
-			initBones();
-    		setupDatGui();
-			animate();
+			function initPose(pose) {
+				// call this function when new pose needs to be added
+				for (var key in pose) {
 
-			function animate() {
+					var attrName = key;
+					var attrValue = pose[key];
+
+					console.log(attrName);
+				}
+			}
+
+			function getNewPosition(callback) {
+				socket.emit('want pose', {data: 'give me pose'}, gotNewPosition);
+				// socket.once('send pose', function( msg ) {
+				// 	ack();
+				// 	callback(msg);
+				// });
+			}
+
+			function gotNewPosition(newPoses) {
+				if (typeof newPoses === "undefined") {
+					console.log("something is wrong");
+				} else {
+					var jsonPoses = JSON.parse(newPoses);
+					console.log(jsonPoses);
+					console.log(poses.length);
+					for (var key in jsonPoses) {
+						var i = Number(key);
+						var pose = jsonPoses[key];
+
+						if (i+1 > poses.length) {
+							initPose(pose);
+							poses.push(pose);
+						}
+						else {
+							console.log("no new poses")
+							poses[i] = pose;
+						}
+
+					}
+				}
+			}
+			
+			function animate(now) {  // requestAnimationFrame has a call back for time (which is `now`)
+				// calls two seconds
+				if(!last || now - last >= interval*1000) {
+					last = now;
+					console.log(now);
+					getNewPosition(gotNewPosition);
+				}
+
 				requestAnimationFrame( animate );
 				
 				var time = Date.now() * 0.001;
@@ -76,6 +145,12 @@
 				stats.update();
 			}
 			
+
+			initThreeD(roomModelURL);
+			initBones();
+    		setupDatGui();
+			animate();
+
 		</script>
 
 	</body>

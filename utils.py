@@ -145,6 +145,24 @@ def poses_masks_from_npz(file_path):
     
     return poses, masks
 
+def poses_objects_from_npz(file_path):
+    '''Loads pose and mask dictionary from npz'''
+    poses, bbox, center = None, None, None
+    data = np.load(file_path)
+    files = data.files
+    if len(files):
+        if 'poses' in files:
+            poses = data['poses'][()]  # because it's a dict
+        
+        if 'bbox' in files:
+            masks = data['bbox'][()]
+
+        if 'center' in files:
+            masks = data['center'][()]
+    
+    return poses, bbox, center
+
+
 
 def main():
     # demo:
