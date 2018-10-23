@@ -71,6 +71,8 @@
 			var container, stats, gui;
 			var scene, renderGroup, camera, renderer, orbit, lights;
 			var last = 0; // timestamp of the last render() call
+			var lastClear = 0; // timestamp of the last render() call
+			
 			var interval = 0.05; // 1/frame rate
 			var jointGroup = [];
 			var limbGroup = [];
@@ -171,11 +173,13 @@
 
 			function createText(text, pos) {
 				var canvas1 = document.createElement('canvas');
+				canvas1.height = 128;
+				canvas1.width = 256;
 				var context1 = canvas1.getContext('2d');
 				context1.font = "Bold 40px Arial";
 				color = jointColors[Math.floor(Math.random()*jointColors.length)];
 				context1.fillStyle = "rgba("+color[0]+","+color[1]+","+color[2]+",0.9)";
-				context1.fillText(text, 0, 50);
+				context1.fillText(text, 0, 64);
 				
 				// canvas contents will be used for a texture
 				var texture1 = new THREE.Texture(canvas1) 
@@ -184,7 +188,7 @@
 				var material1 = new THREE.MeshBasicMaterial( {map: texture1, side:THREE.DoubleSide } );
 				material1.transparent = true;
 				var mesh1 = new THREE.Mesh(
-					new THREE.PlaneGeometry(10, 10),
+					new THREE.PlaneGeometry(8, 8),
 					material1
 				);
 				mesh1.position.set(pos[0], pos[1], pos[2]);
@@ -234,22 +238,37 @@
 					console.log("something is wrong");
 				} else {
 					var jsonPoses = JSON.parse(poses);
+					var currentPoseCount = Object.keys(jsonPoses).length;
+					var posesShouldDisappear = jointGroup.length - currentPoseCount;
 
 					for (var key in jsonPoses) {
 
 						var i = Number(key);
 						var pose = jsonPoses[key];
 
-						// if (i+1 > jointGroup.length) {
-						// 	initHuman();
-						// 	console.log("new pose")
-						// }
-
-						if (i === 0) {
-							// only a single person for now
-							updateJoints(i, pose);
+						if (i+1 > jointGroup.length) {
+							initHuman();
+							console.log("new pose")
 						}
-						
+
+						// if (i === 0) {
+						// 	// only a single person for now
+						// 	updateJoints(i, pose);
+						// }
+						updateJoints(i, pose);
+					}
+					
+					// make other pose disappear
+					for (var i=currentPoseCount; i<jointGroup.length; i++) {
+						for (var j=0; j<jointColors.length; j++) {
+							jointGroup[i][j].visible = false;
+						}
+					}
+
+					for (var i=currentPoseCount; i<limbGroup.length; i++) {
+						for (var j=0; j<limbConnections.length; j++) {
+							limbGroup[i][j].visible = false;
+						}
 					}
 
 				}
@@ -295,7 +314,7 @@
 				
 				updatePoses(poses);
 				//updateBboxes(bboxes);
-				//updateCenters(centers);
+				updateCenters(centers);
 			}
 
 			function getDataFromSocket(callback) {
@@ -307,13 +326,25 @@
 			}
 
 			function animate(now) {  // requestAnimationFrame has a call back for time (which is `now`)
-				// calls two seconds
 				if(!last || now - last >= interval*1000) {
 					last = now;
-					//console.log(now);
 					if (state.renderPose) {
 						getDataFromSocket(gotNewDataFromSocket);
 					}
+				}
+
+				if(!lastClear || now - lastClear >= 5*1000) {
+					lastClear = now;
+					
+					// clear objects once in a while
+					for (var key in centerGroup) {
+						renderGroup.remove(centerGroup[key]);
+						centerGroup[key].geometry.dispose();
+						centerGroup[key].material.dispose();
+						centerGroup[key] = undefined;
+					}
+
+					centerGroup = {};
 				}
 
 				requestAnimationFrame( animate );
