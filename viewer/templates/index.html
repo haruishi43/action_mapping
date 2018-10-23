@@ -34,7 +34,8 @@
 	<body>
 		<script src="http://code.jquery.com/jquery-latest.js"></script>
 		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
-        <script src="{{ url_for('static', filename='js/three.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/three.js') }}"></script>
+
         <script src="{{ url_for('static', filename='js/libs/stats.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/libs/dat.gui.min.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/loaders/PLYLoader.js') }}"></script>
@@ -68,28 +69,146 @@
 
 			// Global Variables
 			var container, stats, gui;
-			var scene, camera, renderer, orbit, lights, mesh, bones, skeletonHelper;
+			var scene, renderGroup, camera, renderer, orbit, lights;
 			var poses = [];
 			var last = 0; // timestamp of the last render() call
-			var interval = 2; // 1/frame rate
+			var interval = 0.05; // 1/frame rate
+
+			var jointColors = [
+				[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0],
+				[85, 255, 0], [0, 255, 0], [0, 255, 85], [0, 255, 170], [0, 255, 255],
+				[0, 170, 255], [0, 85, 255], [0, 0, 255], [85, 0, 255], [170, 0, 255],
+				[255, 0, 255], [255, 0, 170], [255, 0, 85]
+			];
+
+			var limbColors = [
+				[0, 255, 0], [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255],
+				[0, 85, 255], [255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0.],
+				[255, 0, 85], [170, 255, 0], [85, 255, 0], [170, 0, 255.], [0, 0, 255],
+				[0, 0, 255], [255, 0, 255], [170, 0, 255], [255, 0, 170]
+			];
+
+			var limbConnections = [ // connect which joint to which (by index)
+				[1, 8], [8, 9], [9, 10], [1, 11], [11, 12], 
+				[12, 13], [1, 2], [2, 3], [3, 4], [1, 5], 
+				[5, 6], [6, 7], [1, 0], [0, 14], [0, 15], 
+				[14, 16], [15, 17]
+			];
+
+			var jointGroup = [];
+			var limbGroup = [];
+
+			// var totalJoints = 18;
+
+			// var geometry = new THREE.BufferGeometry();
+
+			// var positions = new Float32Array( totalJoints * 3);
+			// geometry.addAttribute( 'position', new THREE.BufferAttribute( postion));
+			
 			
 			// Main Room Model
 			var roomModelURL = "{{ url_for('static', filename='models/ply/binary/new_room_edited.ply') }}";
 
 			var state = {
-				renderPose : false,
-				animateBones : false
+				renderPose : false
 			};
 
-			function initPose(pose) {
-				// call this function when new pose needs to be added
-				for (var key in pose) {
+			function initHuman() {
+				var joints = [];
+				var limbs = [];
 
-					var attrName = key;
-					var attrValue = pose[key];
+				// create geometry for joints
+				for (var i=0; i<jointColors.length; i++) {
+					
+					// initialize joint points
+					
+					var jointColor = jointColors[i];
+					var jointColorHex = fullColorHex(jointColor[0], jointColor[1], jointColor[2]);
+					jointColorHex = new THREE.Color(parseInt(jointColorHex, 16));
 
-					console.log(attrName);
+					// var jointGeometry = new THREE.Geometry();
+					// var jointMaterial = new THREE.PointsMaterial( { size: 1, sizeAttenuation: false });
+					// jointMaterial.color = jointColorHex;
+					// jointGeometry.colors = jointColorHex;
+					// jointGeometry.computeBoundingBox();
+					// var joint = new THREE.Points( jointGeometry, jointMaterial );
+					// joint.scale.set( 10,10,10 );
+					
+					var geometry = new THREE.SphereGeometry( 0.3, 8, 8 );
+					var material = new THREE.MeshBasicMaterial( {color: jointColorHex} );
+					var joint = new THREE.Mesh(geometry, material);
+
+					
+					renderGroup.add(joint);
+
+					joints.push(joint);
+
 				}
+				
+				for (var j=0; j<limbConnections.length; j++) {
+					var connectionPair = limbConnections[j];
+					var n1 = connectionPair[0];
+					var n2 = connectionPair[1];
+
+					var v1 = joints[n1].position;
+					var v2 = joints[n2].position;
+
+					var lineColor = limbColors[j];
+					var lineColorHex = fullColorHex(lineColor[0], lineColor[1], lineColor[2]);
+					lineColorHex = new THREE.Color(parseInt(lineColorHex, 16));
+
+					var lineGeometry = new THREE.Geometry();
+					lineGeometry.vertices.push(v1);
+					lineGeometry.vertices.push(v2);
+					lineGeometry.dynamic = true;
+					lineGeometry.verticesNeedUpdate = true;
+
+					var lineMaterial = new THREE.LineBasicMaterial( { color: lineColorHex, opacity: 0.5, linewidth: 3 } );
+					var line = new THREE.Line(lineGeometry, lineMaterial);
+
+					renderGroup.add(line);
+
+					limbs.push(line);
+				}
+
+				jointGroup.push(joints);
+				limbGroup.push(limbs);
+			}
+
+			function updateJoints(index, pose) {
+				// call this function when new pose needs to be added
+				
+				for (var i=0; i<jointColors.length; i++) {
+					var id = i.toString();
+					if (typeof pose[id] === "undefined") {
+						jointGroup[index][i].visible = false;
+					}
+					else {
+						var x = pose[id][0];
+						var y = pose[id][1];
+						var z = pose[id][2];
+
+						jointGroup[index][i].visible = true;
+						jointGroup[index][i].position.set(x, y, z);
+					}
+				}
+				
+				// update line
+				var ids = Object.keys(pose);
+				for (var j=0; j<limbConnections.length; j++) {
+					var n1 = limbConnections[j][0].toString();
+					var n2 = limbConnections[j][1].toString();
+
+					limbGroup[index][j].geometry.verticesNeedUpdate = true;
+					limbGroup[index][j].computeLineDistances();
+					if (ids.includes(n1) && ids.includes(n2)) {
+						
+						limbGroup[index][j].visible = true;
+					} else {
+						limbGroup[index][j].visible = false;
+					}
+				}
+
 			}
 
 			function getNewPosition(callback) {
@@ -105,22 +224,24 @@
 					console.log("something is wrong");
 				} else {
 					var jsonPoses = JSON.parse(newPoses);
-					console.log(jsonPoses);
-					console.log(poses.length);
+
 					for (var key in jsonPoses) {
+
 						var i = Number(key);
 						var pose = jsonPoses[key];
 
-						if (i+1 > poses.length) {
-							initPose(pose);
-							poses.push(pose);
-						}
-						else {
-							console.log("no new poses")
-							poses[i] = pose;
-						}
+						// if (i+1 > jointGroup.length) {
+						// 	initHuman();
+						// 	console.log("new pose")
+						// }
 
+						if (i === 0) {
+							// only a single person for now
+							updateJoints(i, pose);
+						}
+						
 					}
+
 				}
 			}
 			
@@ -128,27 +249,23 @@
 				// calls two seconds
 				if(!last || now - last >= interval*1000) {
 					last = now;
-					console.log(now);
-					getNewPosition(gotNewPosition);
+					//console.log(now);
+					if (state.renderPose) {
+						getNewPosition(gotNewPosition);
+					}
 				}
 
 				requestAnimationFrame( animate );
 				
-				var time = Date.now() * 0.001;
-				// Wiggle the bones
-				if ( state.animateBones ) {
-					for ( var i = 0; i < mesh.skeleton.bones.length; i ++ ) {
-						mesh.skeleton.bones[ i ].rotation.z = Math.sin( time ) * 2 / mesh.skeleton.bones.length;
-					}
-				}
 				renderer.render( scene, camera );
 				stats.update();
 			}
 			
 
 			initThreeD(roomModelURL);
-			initBones();
-    		setupDatGui();
+			
+			setupDatGui();
+			initHuman();
 			animate();
 
 		</script>

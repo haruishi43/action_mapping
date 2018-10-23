@@ -15,6 +15,12 @@ app.config['SECRET_KEY'] = 'vnkdjnfjknfl1232#'
 socketio = SocketIO(app)
 
 
+##########################################################################################################################
+#
+# Pose Getter (an iterator)
+#
+##########################################################################################################################
+
 class PoseGetter:
     """Pose iterator"""
     def __init__(self, file_dir='../data/20180913_1908'):
@@ -68,6 +74,12 @@ class PoseGetter:
 pose_getter = PoseGetter()
 
 
+##########################################################################################################################
+#
+#  socketio / flask
+#
+##########################################################################################################################
+
 
 def get_pose():
     pose = next(pose_getter)
@@ -77,8 +89,10 @@ def get_pose():
 def messageReceived(methods=['GET', 'POST']):
     print('message received!')
 
+
 def ack():
     print('message received!')
+
 
 @app.route('/')
 def index():
@@ -103,5 +117,4 @@ if __name__ == '__main__':
 
     # from pprint import pprint
     # for ps in pose_getter:
-
     #     pprint(ps)
