@@ -40,6 +40,7 @@ function initThreeD ( url ) {
     stats = new Stats();
     container.appendChild( stats.dom );
 
+
     // helper
     var helper = new THREE.GridHelper( 160, 10 );
     // helper.rotation.x = Math.PI / 4;

@@ -70,9 +70,11 @@
 			// Global Variables
 			var container, stats, gui;
 			var scene, renderGroup, camera, renderer, orbit, lights;
-			var poses = [];
 			var last = 0; // timestamp of the last render() call
 			var interval = 0.05; // 1/frame rate
+			var jointGroup = [];
+			var limbGroup = [];
+			var centerGroup = {};
 
 			var jointColors = [
 				[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0],
@@ -94,23 +96,15 @@
 				[5, 6], [6, 7], [1, 0], [0, 14], [0, 15], 
 				[14, 16], [15, 17]
 			];
-
-			var jointGroup = [];
-			var limbGroup = [];
-
-			// var totalJoints = 18;
-
-			// var geometry = new THREE.BufferGeometry();
-
-			// var positions = new Float32Array( totalJoints * 3);
-			// geometry.addAttribute( 'position', new THREE.BufferAttribute( postion));
-			
 			
 			// Main Room Model
 			var roomModelURL = "{{ url_for('static', filename='models/ply/binary/new_room_edited.ply') }}";
 
+			// Font
+			//var fontFile = "{{ url_for('static', filename='fonts/helvetiker_regular.typeface.json') }}";
+
 			var state = {
-				renderPose : false
+				renderPose : true
 			};
 
 			function initHuman() {
@@ -175,6 +169,31 @@
 				limbGroup.push(limbs);
 			}
 
+			function createText(text, pos) {
+				var canvas1 = document.createElement('canvas');
+				var context1 = canvas1.getContext('2d');
+				context1.font = "Bold 40px Arial";
+				color = jointColors[Math.floor(Math.random()*jointColors.length)];
+				context1.fillStyle = "rgba("+color[0]+","+color[1]+","+color[2]+",0.9)";
+				context1.fillText(text, 0, 50);
+				
+				// canvas contents will be used for a texture
+				var texture1 = new THREE.Texture(canvas1) 
+				texture1.needsUpdate = true;
+				
+				var material1 = new THREE.MeshBasicMaterial( {map: texture1, side:THREE.DoubleSide } );
+				material1.transparent = true;
+				var mesh1 = new THREE.Mesh(
+					new THREE.PlaneGeometry(10, 10),
+					material1
+				);
+				mesh1.position.set(pos[0], pos[1], pos[2]);
+				mesh1.rotation.x = Math.PI / 2; 
+				renderGroup.add( mesh1 );
+
+				centerGroup[text] = mesh1;
+			}
+
 			function updateJoints(index, pose) {
 				// call this function when new pose needs to be added
 				
@@ -208,22 +227,13 @@
 						limbGroup[index][j].visible = false;
 					}
 				}
-
 			}
 
-			function getNewPosition(callback) {
-				socket.emit('want pose', {data: 'give me pose'}, gotNewPosition);
-				// socket.once('send pose', function( msg ) {
-				// 	ack();
-				// 	callback(msg);
-				// });
-			}
-
-			function gotNewPosition(newPoses) {
-				if (typeof newPoses === "undefined") {
+			function updatePoses(poses) {
+				if (typeof poses === "undefined") {
 					console.log("something is wrong");
 				} else {
-					var jsonPoses = JSON.parse(newPoses);
+					var jsonPoses = JSON.parse(poses);
 
 					for (var key in jsonPoses) {
 
@@ -244,14 +254,65 @@
 
 				}
 			}
-			
+
+			function updateCenters(centers) {
+				if (typeof centers === "undefined") {
+					console.log("something is wrong");
+				} else {
+					var jsonCenters = JSON.parse(centers);
+
+					for (var key in jsonCenters) {
+						var center = jsonCenters[key];
+						
+						if (!(key in centerGroup)) {
+							// add text
+							createText(key, center);
+						}
+
+					}
+
+				}
+			}
+
+			function updateBboxes(bboxes) {
+				if (typeof bboxes === "undefined") {
+					console.log("something is wrong");
+				} else {
+					var jsonBboxes = JSON.parse(bboxes);
+					console.log(jsonBboxes);
+
+					for (var key in jsonBboxes) {
+
+						var i = Number(key);
+						var bbox = jsonBboxes[key];
+						
+					}
+
+				}
+			}
+
+			function gotNewDataFromSocket(poses, bboxes, centers) {
+				
+				updatePoses(poses);
+				//updateBboxes(bboxes);
+				//updateCenters(centers);
+			}
+
+			function getDataFromSocket(callback) {
+				socket.emit('want pose', {data: 'give me pose'}, callback);
+				// socket.once('send pose', function( msg ) {
+				// 	ack();
+				// 	callback(msg);
+				// });
+			}
+
 			function animate(now) {  // requestAnimationFrame has a call back for time (which is `now`)
 				// calls two seconds
 				if(!last || now - last >= interval*1000) {
 					last = now;
 					//console.log(now);
 					if (state.renderPose) {
-						getNewPosition(gotNewPosition);
+						getDataFromSocket(gotNewDataFromSocket);
 					}
 				}
 

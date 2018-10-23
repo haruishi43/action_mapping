@@ -155,10 +155,10 @@ def poses_objects_from_npz(file_path):
             poses = data['poses'][()]  # because it's a dict
         
         if 'bbox' in files:
-            masks = data['bbox'][()]
+            bbox = data['bbox'][()]
 
         if 'center' in files:
-            masks = data['center'][()]
+            center = data['center'][()]
     
     return poses, bbox, center
 

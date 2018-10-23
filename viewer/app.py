@@ -21,7 +21,7 @@ socketio = SocketIO(app)
 #
 ##########################################################################################################################
 
-class PoseGetter:
+class PoseObjectGetter:
     """Pose iterator"""
     def __init__(self, file_dir='../data/20180913_1908'):
         self.data_path = os.path.join(dir_path, file_dir)
@@ -39,39 +39,80 @@ class PoseGetter:
             self.current = 0
         
         file_path = os.path.join(self.data_path, self.filenames[self.current])
-        poses, _, _ = poses_objects_from_npz(file_path)
+        poses, bboxes, centers = poses_objects_from_npz(file_path)
 
         self.current += 1
 
-        return self._to_json(poses)
+        poses = self._to_json(poses)
+        bboxes = self._bboxes_to_json(bboxes)
+        centers = self._centers_to_json(centers)
 
-    def _cleanse_data(self, _poses):
-        poses = {}
+        return poses, bboxes, centers
 
-        if _poses is not None:  # send empty dict if no poses
-            pose_ids = list(_poses.keys())
+    def _cleanse_dict(self, _in):
+        _out = {}
+
+        if _in is not None:  # send empty dict if None
+            ids = list(_in.keys())
         
-            for p_id in pose_ids:
-                pose = _poses[p_id]  # np array
-                pose = 0.01 * pose  # change scale
+            for id in ids:
+                single = _in[id]  # np array
+                single = 0.01 * single  # change scale
 
                 # remove nans and make it into a dict of lists
-                pose_dict = {i: pos.tolist() for i, pos in enumerate(pose) if not np.isnan(pos).any()}
-                poses[p_id] = pose_dict  # add to dict
+                single_dict = {i: s.tolist() for i, s in enumerate(single) if not np.isnan(s).any()}
+                _out[id] = single_dict  # add to dict
         
-        return poses
+        return _out
 
-    def _to_json(self, _poses):
+    def _to_json(self, _in):
 
         # get cleansed dictionary
-        _poses = self._cleanse_data(_poses)
+        _in = self._cleanse_dict(_in)
 
         # convert to json
-        poses = json.dumps(_poses)
-        return poses
+        _out = json.dumps(_in)
+        return _out
+
+    def _bboxes_to_json(self, _in):
+        _out = {}
+
+        if _in is not None:  # send empty dict if None
+            ids = list(_in.keys())
+        
+            for id in ids:
+                single = _in[id]  # np array
+                single = 0.01 * single  # change scale
+
+                # remove nans and make it into a dict of lists
+                single_dict = single.tolist()
+                _out[id] = single_dict  # add to dict
+
+        # convert to json
+        _out = json.dumps(_out)
+        return _out
+
+    def _centers_to_json(self, _in):
+        _out = {}
+
+        if _in is not None:  # send empty dict if None
+            ids = list(_in.keys())
+        
+            for id in ids:
+                single = _in[id]  # np array
+                single = 0.01 * single  # change scale
+
+                # remove nans and make it into a dict of lists
+                single_dict = single.tolist()
+                _out[id] = single_dict  # add to dict
+
+        # convert to json
+        _out = json.dumps(_out)
+        return _out
 
 
-pose_getter = PoseGetter()
+
+getter = PoseObjectGetter(file_dir='../data/20180909_1316')
 
 
 ##########################################################################################################################
@@ -81,9 +122,9 @@ pose_getter = PoseGetter()
 ##########################################################################################################################
 
 
-def get_pose():
-    pose = next(pose_getter)
-    return pose
+def get_data_from_getter():
+    pose, bbox, center = next(getter)
+    return (pose, bbox, center)
 
 
 def messageReceived(methods=['GET', 'POST']):
@@ -101,7 +142,7 @@ def index():
 
 @socketio.on('want pose')
 def handle_pose(_json, methods=['GET', 'POST']):
-    json_data = get_pose()
+    json_data = get_data_from_getter()
     return json_data
     # socketio.emit('send pose', json_data, callback=ack)
 
@@ -115,6 +156,18 @@ def handle_my_custom_event(json, methods=['GET', 'POST']):
 if __name__ == '__main__':
     socketio.run(app, debug=True)
 
-    # from pprint import pprint
-    # for ps in pose_getter:
-    #     pprint(ps)
+
+    ## Testing getter:
+    from pprint import pprint
+    
+    # for ps, bbox in getter:
+    #     print(bbox)
+
+    # pose, bbox, center = next(getter)
+    # pprint(pose)
+
+    # print('')
+    # pprint(bbox)
+
+    # print('')
+    # pprint(center)

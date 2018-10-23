@@ -68,7 +68,7 @@ def get_pose(depths, K, P, poses, scores):
             if Z != 0.0:
                 # Depth = 0 means that depth data was unavailable
                 X, Y = calc_xy(x, y, Z, K)
-                joints[j] = +(np.asarray([X, Y, Z]), P)
+                joints[j] = convert2world(np.asarray([X, Y, Z]), P)
                 # print('x: {}, y: {}, depth: {}'.format(X, Y, Z))
 
         pose_dict[poses_num] = joints
@@ -145,7 +145,7 @@ def get_object(depths, K, P, labels, masks, scores):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Pose Getter')
     parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
-    parser.add_argument('--save', default= './data',help='relative data path from where you use this program')
+    parser.add_argument('--save', default= './data_2',help='relative data path from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # saving to mnt
     dm = DataManagement(args.data, args.save)
     after = dt(2018, 9, 9, 13, 0, 0)
-    before = dt(2018, 9, 14, 0, 0, 0)
+    before = dt(2018, 9, 9, 14, 0, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
@@ -220,10 +220,11 @@ if __name__ == "__main__":
                         continue
                     else:
                         np.savez_compressed(file_save_path, bbox=dict_bbox, center=dict_center)
-                        print("saved")
+                        print("saved_obj")
                 else:
                     if not len(dict_bbox):
                         np.savez_compressed(file_save_path, poses=dict_poses)
+                        print("saved_poses")
                     else:
                         np.savez_compressed(file_save_path, poses=dict_poses, bbox=dict_bbox, center=dict_center)
-                    print("saved")
+                        print("saved_all")
