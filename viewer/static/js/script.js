@@ -83,6 +83,12 @@ function setupDatGui () {
     folder.__controllers[ 0 ].name( "Render Pose" );
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Utils
+//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -104,4 +110,21 @@ var fullColorHex = function(r, g, b) {
     var green = rgbToHex(g);
     var blue = rgbToHex(b);
     return red+green+blue;
+};
+
+var cocoLabelTextToObjectID = function( text ) {
+    splits = text.split("_");
+    id = Number(splits[0]);
+    if (splits.length > 1) {
+        instanceNumber = Number(splits[1]);
+    }
+    if (isNaN(id)) {
+        return undefined;
+    } else {
+        if (isNaN(instanceNumber)) {
+            return [id];
+        } else {
+            return [id, instanceNumber];
+        }
+    }
 };
