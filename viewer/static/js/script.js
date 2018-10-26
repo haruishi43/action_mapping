@@ -40,9 +40,10 @@ function initThreeD ( url ) {
     stats = new Stats();
     container.appendChild( stats.dom );
 
-
     // helper
-    var helper = new THREE.GridHelper( 160, 10 );
+    var gridSize = 60;
+    var gridDivision = 60;
+    var helper = new THREE.GridHelper( gridSize, gridDivision );
     // helper.rotation.x = Math.PI / 4;
     helper.position.y = -15.0;
 	scene.add( helper );
@@ -65,7 +66,8 @@ function initThreeD ( url ) {
         roomMesh.castShadow = true;
         roomMesh.receiveShadow = true;
         roomMesh.name = "new_room_edited.ply";
-        renderGroup.add( roomMesh );
+        room = roomMesh;
+        renderGroup.add( room );
     } );
 
     renderGroup.rotation.x = -Math.PI / 2;
@@ -81,6 +83,10 @@ function setupDatGui () {
 
     folder.add( state, "renderPose" );
     folder.__controllers[ 0 ].name( "Render Pose" );
+
+    folder.add( state, "renderRoom" );
+    folder.__controllers[ 1 ].name( "Render Room" );
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////

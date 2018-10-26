@@ -69,9 +69,7 @@
 
 			// Global Variables
 			var container, stats, gui;
-			var scene, renderGroup, camera, renderer, orbit, lights;
-			var last = 0; // timestamp of the last render() call
-			var lastClear = 0; // timestamp of the last render() call
+			var scene, renderGroup, camera, renderer, orbit, lights, room;
 			
 			var interval = 0.05; // 1/frame rate
 			var jointGroup = [];
@@ -204,7 +202,8 @@
 			//var fontFile = "{{ url_for('static', filename='fonts/helvetiker_regular.typeface.json') }}";
 
 			var state = {
-				renderPose : true
+				renderPose : true,
+				renderRoom : true,
 			};
 
 			function initHuman() {
@@ -431,8 +430,22 @@
 				// 	callback(msg);
 				// });
 			}
+			
+
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//
+			//  Animation loop
+			//
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			var animationFlags = {
+				renderRoom : true
+			};
+			var last = 0; // timestamp of the last render() call
+			var lastClear = 0; // timestamp of the last render() call
 
 			function animate(now) {  // requestAnimationFrame has a call back for time (which is `now`)
+
 				if(!last || now - last >= interval*1000) {
 					last = now;
 					if (state.renderPose) {
@@ -455,6 +468,18 @@
 					}
 
 					centerGroup = {};
+				}
+
+				if (!(state.renderRoom === animationFlags.renderRoom)) {
+					if (!(room === undefined)) {
+						if (state.renderRoom) {
+							room.visible = true;
+							animationFlags.renderRoom = true;
+						} else {
+							room.visible = false;
+							animationFlags.renderRoom = false;
+						}	
+					}
 				}
 
 				requestAnimationFrame( animate );
