@@ -92,4 +92,8 @@ function setupDatGui () {
     folder.add( state, "renderRoom" );
     folder.__controllers[ 1 ].name( "Render Room" );
 
+    folder.open();
+
+    
+
 }

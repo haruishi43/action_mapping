@@ -28,6 +28,7 @@ class PoseObjectGetter:
         files = os.listdir(self.data_path)
         self.filenames = sorted(files, key=lambda f: int(''.join(filter(str.isdigit, f))))
         self.current = 0
+        self.total_files = len(files)
 
     def __iter__(self):
         '''Not really using it'''
@@ -140,14 +141,13 @@ def index():
     return render_template('index.html')
 
 
-@socketio.on('want pose')
+@socketio.on('give me data')
 def handle_pose(_json, methods=['GET', 'POST']):
     json_data = get_data_from_getter()
     return json_data
-    # socketio.emit('send pose', json_data, callback=ack)
 
 
-@socketio.on('my event')
+@socketio.on('ack connection')
 def handle_my_custom_event(json, methods=['GET', 'POST']):
     print('received my event: ' + str(json))
     socketio.emit('my response', json, callback=messageReceived)

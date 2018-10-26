@@ -52,7 +52,7 @@
 			// Connect to server via socket:
 			var socket = io.connect('http://' + document.domain + ':' + location.port);
 			socket.on ('connect', function() {
-				socket.emit ('my event', {data: 'I\'m connected!'});
+				socket.emit ('ack connection', {data: 'I\'m connected!'});
 			});
 
 			/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +94,7 @@
 			}
 
 			function getDataFromSocket(callback) {
-				socket.emit('want pose', {data: 'give me pose'}, callback);
+				socket.emit('give me data', {data: 'pass me some data!"'}, callback);
 				// socket.once('send pose', function( msg ) {
 				// 	ack();
 				// 	callback(msg);
