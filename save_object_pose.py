@@ -6,10 +6,11 @@ import time
 from collections import defaultdict
 
 import numpy as np
+import cv2
 import open3d as o3
 
 from open3d_chain import Open3D_Chain
-from getter_models import MaskRCNN, OpenPose, coco_label_names, JointType
+from getter_models import MaskRCNN, OpenPose, coco_label_names, test_class_ids, JointType, extracting_ids
 from utils import DataManagement
 
 
@@ -45,7 +46,7 @@ def calc_xy(x, y, z, K):
 def downsample_nparray(arr):  # arr = [[x, y, z], [...] ]
     pcd = o3.PointCloud()
     pcd.points = o3.Vector3dVector(arr)
-    downpcd = o3.voxel_down_sample(pcd, voxel_size=500) 
+    downpcd = o3.voxel_down_sample(pcd, voxel_size=10) 
     return np.asarray(downpcd.points)
 
 
@@ -54,8 +55,8 @@ def get_pose(depths, K, P, poses, scores):
 
     poses_num = 0
     for i, pose in enumerate(poses):
-
-        if scores[i] < 0.5:  # scoring system is wierd (probably ~1 per joints?)
+        
+        if scores[i] < 10:  # scoring system is wierd (probably ~1 per joints?)
             continue
         
         joints = np.empty((len(JointType), 3))
@@ -84,28 +85,43 @@ def get_object(depths, K, P, labels, masks, scores):
     w = 1280  # image width
 
     for i, label in enumerate(labels):
+
+        if label not in extracting_ids:
+            continue
+
         name = coco_label_names[label]
         
-        if scores[i] < 0.70:
+        if scores[i] < 0.75:
             continue
 
         # multiply mask with depth frame
         mask = masks[i]
-        mask_with_depth = np.multiply(depths, mask)
+
+        # erosion
+        kernel = np.ones((5,5), np.uint8)
+        eroded_mask = cv2.erode(mask, kernel, iterations=1)
+
+        mask_with_depth = np.multiply(depths, eroded_mask)
         mask_flattened = mask_with_depth.flatten()
+
         # Get all indicies that has depth points
         non_zero_indicies = np.nonzero(mask_flattened)[0]
+
+        total = mask_flattened.shape[0]
+        non_zero_total = non_zero_indicies.shape[0]
+        ratio = (total - non_zero_total)/total
         
-        ratio = 10
-        if non_zero_indicies.shape[0] > 10000:
-            ratio = 100
-        
-        if non_zero_indicies.shape[0] < 100:
+        if non_zero_total > 100000:
+            ratio = 0.01*ratio
+        elif non_zero_total > 10000:
+            ratio = 0.1*ratio
+        elif non_zero_total < 10:
             ratio = 1
 
-        random_indecies = np.random.choice(non_zero_indicies.shape[0], int(non_zero_indicies.shape[0] / ratio))
-        # image_size = len(depths.flatten())
-        non_zero_indicies = non_zero_indicies[random_indecies]
+        sample_number = int(ratio*non_zero_total)
+
+        random_indicies = np.random.choice(non_zero_total,  sample_number)
+        non_zero_indicies = non_zero_indicies[random_indicies]
 
         mask_size = len(non_zero_indicies)
         points = np.zeros((mask_size, 3))
@@ -120,6 +136,7 @@ def get_object(depths, K, P, labels, masks, scores):
 
         max_x, max_y, max_z = np.amax(points, 0)
         min_x, min_y, min_z = np.amin(points, 0)
+        center = np.mean(points, 0)
 
         bbox = np.array([[max_x, max_y, max_z],
                          [max_x, max_y, min_z],
@@ -130,9 +147,9 @@ def get_object(depths, K, P, labels, masks, scores):
                          [min_x, max_y, max_z],
                          [min_x, max_y, min_z]])
 
-        center = np.array([(max_x+min_x)/2,
-                           (max_y+min_y)/2,
-                           (max_z+min_z)/2])
+        # center = np.array([(max_x+min_x)/2,
+        #                    (max_y+min_y)/2,
+        #                    (max_z+min_z)/2])
 
         title = str(label) + '_' + str(objects[label])
         object_bbox[title] = bbox
@@ -153,8 +170,8 @@ if __name__ == "__main__":
     print('Saving data to: {}'.format(args.save))
     # saving to mnt
     dm = DataManagement(args.data, args.save)
-    after = dt(2018, 9, 9, 13, 0, 0)
-    before = dt(2018, 9, 9, 14, 0, 0)
+    after = dt(2018, 9, 13, 19, 8, 0)
+    before = dt(2018, 9, 13, 19, 9, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
@@ -163,8 +180,8 @@ if __name__ == "__main__":
     P = o3_chain.get_P()
 
     # Intialize Models:
-    maskrcnn = MaskRCNN(0)
-    openpose = OpenPose(0)
+    maskrcnn = MaskRCNN(args.gpu)
+    openpose = OpenPose(args.gpu)
     
     for datetime in datetimes:
 
@@ -194,6 +211,7 @@ if __name__ == "__main__":
                     print("File exists")
                     continue
 
+
                 # find the corresponding depth image
                 rgb_img = os.path.join(rgb_path, fn)
                 depth_img = os.path.join(depth_path, fn)
@@ -206,13 +224,16 @@ if __name__ == "__main__":
                 depths = o3_chain.get_depths()
 
                 # OpenPose
-                poses, scores = openpose.predict(rgb)  # 0.115
+                poses, pose_scores = openpose.predict(rgb)  # 0.115
                 # MASKRCNN
-                _, labels, scores, masks = maskrcnn.predict(
+                _, labels, mask_scores, masks = maskrcnn.predict(
                     rgb.swapaxes(2, 1).swapaxes(1, 0))  # 0.210
 
-                dict_poses = get_pose(depths, K, P, poses, scores)  # 8.5e-06
-                dict_bbox, dict_center = get_object(depths, K, P, labels, masks, scores)  # 0.055
+                dict_poses = get_pose(depths, K, P, poses, pose_scores)  # 8.5e-06
+
+                dict_bbox, dict_center = [], []
+                if labels is not None:
+                    dict_bbox, dict_center = get_object(depths, K, P, labels, masks, mask_scores)  # 0.055
 
                 # save the files as npz  (timed around 0.009)
                 if not len(dict_poses):
@@ -228,3 +249,5 @@ if __name__ == "__main__":
                     else:
                         np.savez_compressed(file_save_path, poses=dict_poses, bbox=dict_bbox, center=dict_center)
                         print("saved_all")
+
+                

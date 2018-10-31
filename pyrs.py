@@ -25,6 +25,7 @@ class PyRS:
         self._config.enable_stream(rs.stream.color, w, h, rs.format.bgr8, frame_rate)
         self.intrinsic = None
         if depths:
+            self.align = rs.align(rs.stream.color)
             self._preset = 1
             # Presets:
             # 0: Custom
@@ -64,6 +65,10 @@ class PyRS:
         
     def start_pipeline(self):
         '''Always call this function to start the capturing pipeline'''
+        self._context = rs.context()
+        print(len(self._context.devices))
+        device = self._context.devices[0]
+        print(device.get_info(rs.camera_info.name))
         self._context = self._pipeline.start(self._config)
         if self.depths_on:
             self.__initialize_depths_sensor()
@@ -95,10 +100,13 @@ class PyRS:
     def update_frames(self):
         '''Updates frames to pipeline (same as calling `_pipeline.wait_for_frames()`)'''
         frames = self._pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
+
+        aligned_frames = self.align.process(frames)
+
+        color_frame = aligned_frames.get_color_frame()
         self._color_image = np.asanyarray(color_frame.get_data())
         if self.depths_on:
-            depths_frame = frames.get_depth_frame()
+            depths_frame = aligned_frames.get_depth_frame()
             self._depths_image = np.asanyarray(depths_frame.get_data())
 
     def get_color_image(self):

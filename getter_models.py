@@ -18,19 +18,48 @@ from openpose import PoseDetector, draw_person_pose
 MASKRCNN_MODEL_FILE = 'modelfiles/e2e_mask_rcnn_R-50-C4_1x_d2c.npz'
 OPENPOSE_MODEL_FILE = 'models/coco_posenet.npz'
 
-test_class_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, \
+
+# len = 41
+extracting_ids = [1, \
+    26, 27, 30, \
+    31, 33, \
+    44, 45, \
+    46, 47, 48, 49, 50, \
+    51, 52, 53, 54, 55, \
+    56, 57, 58, 59, 60, \
+    61, 62, 63, 64, 65, \
+    67, 68, 69, \
+    73, 74, \
+    76, 77, 78, \
+    81, 82, 84, 85, \
+    87]
+
+
+# 80
+coco_label_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, \
     27, 28, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, \
     57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
 
+
 coco_label_names = ('background',  # class zero
-    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-    'fire hydrant', 'street sign', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-    'elephant', 'bear', 'zebra', 'giraffe', 'hat', 'backpack', 'umbrella', 'shoe', 'eye glasses', 'handbag', 'tie', 'suitcase', 'frisbee',
-    'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle',
-    'plate', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange',
-    'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
-    'mirror', 'dining table', 'window', 'desk','toilet', 'door', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven',
-    'toaster', 'sink', 'refrigerator', 'blender', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 
+    'bus', 'train', 'truck', 'boat', 'traffic light',
+    'fire hydrant', 'street sign', 'stop sign', 'parking meter', 'bench', 
+    'bird', 'cat', 'dog', 'horse', 'sheep', 
+    'cow', 'elephant', 'bear', 'zebra', 'giraffe', 
+    'hat', 'backpack', 'umbrella', 'shoe', 'eye glasses', 
+    'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 
+    'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 
+    'skateboard', 'surfboard', 'tennis racket', 'bottle', 'plate', 
+    'wine glass', 'cup', 'fork', 'knife', 'spoon', 
+    'bowl', 'banana', 'apple', 'sandwich', 'orange',
+    'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 
+    'cake', 'chair', 'couch', 'potted plant', 'bed',
+    'mirror', 'dining table', 'window', 'desk','toilet', 
+    'door', 'tv', 'laptop', 'mouse', 'remote', 
+    'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 
+    'sink', 'refrigerator', 'blender', 'book', 'clock', 
+    'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 )
 
 coco_label_colors = {
@@ -149,7 +178,7 @@ class MaskRCNN(GetterBase):
                         pretrained_model = modelfile,
                         n_layers = 50,  # resnet 50 layers (not 101 layers)
                         roi_align = roi_align,
-                        class_ids = test_class_ids)
+                        class_ids = coco_label_ids)
         chainer.serializers.load_npz(modelfile, model)
 
         # use gpu
@@ -161,7 +190,9 @@ class MaskRCNN(GetterBase):
 
     def predict(self, img):
         _bboxes, _labels, _scores, _masks = self.model.predict([img])
-        return _bboxes[0], _labels[0], _scores[0], _masks[0]
+        if len(_labels[0]) > 0:
+            return _bboxes[0], _labels[0], _scores[0], _masks[0]
+        else: return None, None, None, None
 
 
 class OpenPose(GetterBase):
@@ -181,4 +212,5 @@ class OpenPose(GetterBase):
         return model
 
     def predict(self, img):
-        return self.model(img)  # returns poses, scores
+        poses, scores = self.model(img)  # returns poses, scores
+        return poses, scores

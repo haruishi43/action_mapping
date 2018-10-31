@@ -164,7 +164,7 @@ def poses_objects_from_npz(file_path):
 
 
 
-def main():
+def test():
     # demo:
 
     dm = DataManagement()
@@ -182,4 +182,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test()

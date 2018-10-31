@@ -6,10 +6,11 @@ import time
 from collections import defaultdict
 
 import numpy as np
+import cv2
 import open3d as o3
 
 from open3d_chain import Open3D_Chain
-from getter_models import MaskRCNN, OpenPose, coco_label_names, JointType
+from getter_models import MaskRCNN, OpenPose, coco_label_names, JointType, extracting_ids
 from utils import DataManagement
 
 
@@ -55,7 +56,7 @@ def get_pose(depths, K, P, poses, scores):
     poses_num = 0
     for i, pose in enumerate(poses):
 
-        if scores[i] < 0.5:  # scoring system is wierd (probably ~1 per joints?)
+        if scores[i] < 10:  # scoring system is wierd (probably ~1 per joints?)
             continue
         
         joints = np.empty((len(JointType), 3))
@@ -83,28 +84,43 @@ def get_object(depths, K, P, labels, masks, scores):
     w = 1280  # image width
 
     for i, label in enumerate(labels):
+
+        if label not in extracting_ids:
+            continue
+
         name = coco_label_names[label]
         
-        if scores[i] < 0.70:
+        if scores[i] < 0.75:
             continue
 
         # multiply mask with depth frame
         mask = masks[i]
-        mask_with_depth = np.multiply(depths, mask)
+
+        # erosion
+        kernel = np.ones((5,5), np.uint8)
+        eroded_mask = cv2.erode(mask, kernel, iterations=1)
+
+        mask_with_depth = np.multiply(depths, eroded_mask)
         mask_flattened = mask_with_depth.flatten()
         # Get all indicies that has depth points
         non_zero_indicies = np.nonzero(mask_flattened)[0]
 
-        ratio = 5
-        if non_zero_indicies.shape[0] > 7000:
-            ratio = 10
+        total = mask_flattened.shape[0]
+        non_zero_total = non_zero_indicies.shape[0]
+        ratio = (total - non_zero_total)/total
         
-        if non_zero_indicies.shape[0] < 700:
+        if non_zero_total > 100000:
+            ratio = 0.01*ratio
+        elif non_zero_total > 10000:
+            ratio = 0.1*ratio
+        elif non_zero_total < 10:
             ratio = 1
 
-        random_indecies = np.random.choice(non_zero_indicies.shape[0], int(non_zero_indicies.shape[0] / ratio))
+        sample_number = int(ratio*non_zero_total)
+        random_indicies = np.random.choice(non_zero_total, sample_number)
+
         # image_size = len(depths.flatten())
-        non_zero_indicies = non_zero_indicies[random_indecies]
+        non_zero_indicies = non_zero_indicies[random_indicies]
 
         mask_size = len(non_zero_indicies)
         points = np.zeros((mask_size, 3))
@@ -119,7 +135,7 @@ def get_object(depths, K, P, labels, masks, scores):
 
             # append to points
             points[j] = convert2world(np.asarray([X, Y, Z]), P)
-        
+
         downsampled_points = downsample_nparray(points)
         title = str(label) + '_' + str(objects[label])
         object_masks[title] = downsampled_points
@@ -131,14 +147,16 @@ def get_object(depths, K, P, labels, masks, scores):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Pose Getter')
     parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
+    parser.add_argument('--save', default= './data_mask',help='relative data path from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     print('Getting data from: {}'.format(args.data))
     # saving to mnt
-    dm = DataManagement(args.data)
-    after = dt(2018, 9, 1, 0, 0, 0)
-    before = dt(2018, 9, 30, 0, 0, 0)
+    print('Save data to: {}'.format(args.save))
+    dm = DataManagement(args.data, args.save)
+    after = dt(2018, 9, 9, 13, 7, 0)
+    before = dt(2018, 9, 9, 13, 9, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
@@ -147,8 +165,8 @@ if __name__ == "__main__":
     P = o3_chain.get_P()
 
     # Intialize Models:
-    maskrcnn = MaskRCNN(0)
-    openpose = OpenPose(0)
+    maskrcnn = MaskRCNN(args.gpu)
+    openpose = OpenPose(args.gpu)
     
     for datetime in datetimes:
 
@@ -190,14 +208,16 @@ if __name__ == "__main__":
                 depths = o3_chain.get_depths()
 
                 # OpenPose
-                poses, scores = openpose.predict(rgb)
+                poses, pose_scores = openpose.predict(rgb)
                 
                 # MASKRCNN
-                _, labels, scores, masks = maskrcnn.predict(
+                _, labels, mask_scores, masks = maskrcnn.predict(
                     rgb.swapaxes(2, 1).swapaxes(1, 0))
 
-                dict_poses = get_pose(depths, K, P, poses, scores)
-                dict_masks = get_object(depths, K, P, labels, masks, scores)
+                dict_poses = get_pose(depths, K, P, poses, pose_scores)
+                dict_masks = []
+                if labels is not None:
+                    dict_masks = get_object(depths, K, P, labels, masks, mask_scores)
                 
                 # save the files as npz
                 if not len(dict_poses):

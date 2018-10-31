@@ -21,8 +21,8 @@ if __name__ == "__main__":
     print('Getting data from: {}'.format(args.data))
     print('Saving to: {}'.format(args.save))
     dm = DataManagement(args.data, args.save)
-    after = dt(2018, 9, 9, 0, 0, 0)
-    before = dt(2018, 9, 10, 0, 0, 0)
+    after = dt(2018, 9, 9, 13, 7, 0)
+    before = dt(2018, 9, 9, 13, 8, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
