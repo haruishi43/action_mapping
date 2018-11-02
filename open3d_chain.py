@@ -21,7 +21,8 @@ class Open3D_Chain:
         self.depths =  self.read_image(depths_path)
     
     def create_rgbd(self):
-        self.rgbd = o3.create_rgbd_image_from_color_and_depth(self.rgb, self.depths)
+        self.rgbd = o3.create_rgbd_image_from_color_and_depth(self.rgb, self.depths, 1000, 10)
+        print(self.rgbd)
 
     def read_image(self, path):
         return o3.read_image(path)
@@ -96,7 +97,7 @@ class Open3D_Chain:
         return self.P.dot(n)[:3]
 
     def compare_with_room(self):
-        pc_room = o3.read_point_cloud('static_data/room_A.ply')
+        pc_room = o3.read_point_cloud('static_data/10_31_room_colorized.ply')
         pcd = self.get_pcd()
 
         P = np.loadtxt('static_data/T.csv', delimiter=',')
@@ -104,11 +105,37 @@ class Open3D_Chain:
 
         o3.draw_geometries([pc_room, pcd])
 
+    def render_pcd(self):
+        pcd = self.get_pcd()
+        o3.draw_geometries([pcd])
+
     def downsample_nparray(self, arr, ratio=1):  # arr = [[x, y, z], [...] ]
         pcd = o3.PointCloud()
         pcd.points = o3.Vector3dVector(arr)
         downpcd = o3.voxel_down_sample(pcd, voxel_size = (10*ratio))  # 5 millimeters
         return np.asarray(downpcd.points)
+
+    def create_pcd_from_numpy(self):
+
+        x = np.linspace(-3, 3, 401)
+        mesh_x, mesh_y = np.meshgrid(x,x)
+        z = np.sinc((np.power(mesh_x,2)+np.power(mesh_y,2)))
+        z_norm = (z-z.min())/(z.max()-z.min())
+        xyz = np.zeros((np.size(mesh_x),3))
+        print(type(xyz))
+        xyz[:,0] = np.reshape(mesh_x,-1)
+        xyz[:,1] = np.reshape(mesh_y,-1)
+        xyz[:,2] = np.reshape(z_norm,-1)
+
+        pcd = o3.PointCloud()
+        pcd.points = o3.Vector3dVector(xyz)
+
+
+        depths_new = self.get_depths(True)
+        pcd_new = o3.create_point_cloud_from_rgbd_image(depths_new, self.camera_intrinsic)
+
+        o3.draw_geometries([pcd, pcd_new])
+
 
 
 
@@ -126,5 +153,7 @@ if __name__ == "__main__":
     plt.title('Depth image')
     plt.imshow(chain.get_depths(True))
     plt.show()
+    chain.render_pcd()
+    # chain.create_pcd_from_numpy()
     chain.save_pcd()
     chain.compare_with_room()

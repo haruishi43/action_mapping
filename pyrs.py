@@ -35,6 +35,22 @@ class PyRS:
             # 4: High Density
             # 5: Medium Density
             self._config.enable_stream(rs.stream.depth, w, h, rs.format.z16, frame_rate)
+            self.colorizer = rs.colorizer()
+
+            # initialize filters
+            self.decimation = rs.decimation_filter()
+            self.decimation.set_option(rs.option.filter_magnitude, 4)
+
+            self.depths_to_disparity = rs.disparity_transform(True)
+
+            self.spatial = rs.spatial_filter()
+            self.spatial.set_option(rs.option.filter_magnitude, 5)
+            self.spatial.set_option(rs.option.filter_smooth_alpha, 0.5)
+            self.spatial.set_option(rs.option.filter_smooth_delta, 20)
+            
+            self.temporal = rs.temporal_filter()
+
+            self.disparity_to_depth = rs.disparity_transform(False)
         
         print("Initialized RealSense Camera\nw: {}, h: {}, depths: {}, frame_rate: {}".format(w, h, depths, frame_rate))
 
@@ -65,10 +81,6 @@ class PyRS:
         
     def start_pipeline(self):
         '''Always call this function to start the capturing pipeline'''
-        self._context = rs.context()
-        print(len(self._context.devices))
-        device = self._context.devices[0]
-        print(device.get_info(rs.camera_info.name))
         self._context = self._pipeline.start(self._config)
         if self.depths_on:
             self.__initialize_depths_sensor()
@@ -101,13 +113,19 @@ class PyRS:
         '''Updates frames to pipeline (same as calling `_pipeline.wait_for_frames()`)'''
         frames = self._pipeline.wait_for_frames()
 
-        aligned_frames = self.align.process(frames)
+        frames = self.align.process(frames)
 
-        color_frame = aligned_frames.get_color_frame()
+        color_frame = frames.get_color_frame()
         self._color_image = np.asanyarray(color_frame.get_data())
         if self.depths_on:
-            depths_frame = aligned_frames.get_depth_frame()
-            self._depths_image = np.asanyarray(depths_frame.get_data())
+            self.depths_frame = frames.get_depth_frame()
+
+            self.depths_frame = self._filter(self.depths_frame)
+
+            # self._depths_image = depths_frame.get_data()
+            # print(type(self._depths_image))
+            self._depths_image = np.asanyarray(self.depths_frame.get_data())
+            self._depths_image = cv2.resize(self._depths_image, (self._color_image.shape[1], self._color_image.shape[0]), interpolation=cv2.INTER_NEAREST)
 
     def get_color_image(self):
         '''Returns color image as Numpy array'''
@@ -116,6 +134,18 @@ class PyRS:
     def get_depths_frame(self):
         '''Returns depth image as Numpy array'''
         return self._depths_image
+
+    def get_colorized_depths_frame(self):
+        colorized_depth = np.asanyarray(self.colorizer.colorize(self.depths_frame).get_data())
+        return cv2.resize(colorized_depth, (self._color_image.shape[1], self._color_image.shape[0]), interpolation=cv2.INTER_NEAREST) 
+
+    def _filter(self, frame):
+        frame = self.decimation.process(frame)
+        frame = self.depths_to_disparity.process(frame)
+        frame = self.spatial.process(frame)
+        frame = self.temporal.process(frame)
+        frame = self.disparity_to_depth.process(frame)
+        return frame
 
     def get_intrinsic(self, as_json=False, path=None):
         '''Return Camera Intrinsic as json'''
@@ -160,12 +190,10 @@ if __name__ == '__main__':
             # Get images as numpy arrays
             color_image = pyrs.get_color_image()
             depths_image = pyrs.get_depths_frame()
-
-            # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-            depths_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depths_image, None, 0.5, 0), cv2.COLORMAP_RAINBOW)
+            colorized_depths = pyrs.get_colorized_depths_frame()
 
             # Stack both images horizontally
-            images = np.hstack((color_image, depths_colormap))
+            images = np.hstack((color_image, colorized_depths))
 
             font = cv2.FONT_HERSHEY_SIMPLEX
             cv2.putText(images, preset_name, (60,80), font, 4,(255,255,255),2, cv2.LINE_AA)

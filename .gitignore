@@ -1,5 +1,7 @@
 data
 data_2
+data_mask
+static_data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

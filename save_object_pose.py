@@ -10,7 +10,7 @@ import cv2
 import open3d as o3
 
 from open3d_chain import Open3D_Chain
-from getter_models import MaskRCNN, OpenPose, coco_label_names, test_class_ids, JointType, extracting_ids
+from getter_models import MaskRCNN, OpenPose, coco_label_names, JointType, extracting_ids
 from utils import DataManagement
 
 
