@@ -1,17 +1,11 @@
 import sys
 import os
 
-import chainer
 import numpy as np
-import open3d as o3
 import cv2
-
 
 from pyrs import PyRS
 from getter_models import MaskRCNN, coco_label_names, extracting_ids
-
-import matplotlib.pyplot as plot
-from chainercv import utils
 
 
 
@@ -93,8 +87,8 @@ if __name__ == '__main__':
             images = np.hstack((color_image, items_image))
             
             # Show image
-            cv2.namedWindow('Item Tracker', cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('Item Tracker', images)
+            cv2.namedWindow('detection', cv2.WINDOW_AUTOSIZE)
+            cv2.imshow('detection', images)
             key = cv2.waitKey(10)
 
             if key == ord('q'):
@@ -102,6 +96,6 @@ if __name__ == '__main__':
                 break
             elif key == ord('p'):
                 # save rgb and depths
-                cv2.imwrite("static_data/color_{}.png".format(name), color_image)
-                cv2.imwrite("static_data/depth_{}.png".format(name), depths_image)
-                cv2.imwrite("static_data/tracker.png", images)
+                cv2.imwrite("static_data/detection_results_color.png".format(name), color_image)
+                cv2.imwrite("static_data/detection_results_depth.png".format(name), depths_image)
+                cv2.imwrite("static_data/detection_results.png", images)

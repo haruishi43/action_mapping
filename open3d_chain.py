@@ -97,7 +97,7 @@ class Open3D_Chain:
         return self.P.dot(n)[:3]
 
     def compare_with_room(self):
-        pc_room = o3.read_point_cloud('static_data/10_31_room_colorized.ply')
+        pc_room = o3.read_point_cloud('static_data/11_02_room_edited.ply')
         pcd = self.get_pcd()
 
         P = np.loadtxt('static_data/T.csv', delimiter=',')
