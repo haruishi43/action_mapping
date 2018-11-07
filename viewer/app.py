@@ -113,7 +113,7 @@ class PoseObjectGetter:
 
 
 
-getter = PoseObjectGetter(file_dir='../data/test/20181107_1750')
+getter = PoseObjectGetter(file_dir='../data/test/20181107_1751')
 
 
 ##########################################################################################################################
@@ -125,6 +125,7 @@ getter = PoseObjectGetter(file_dir='../data/test/20181107_1750')
 
 def get_data_from_getter():
     pose, bbox, center = next(getter)
+    time.sleep(0.1)  # wait a few milisec!
     return (pose, bbox, center)
 
 
