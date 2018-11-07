@@ -61,7 +61,7 @@ function initThreeD ( url ) {
     var loader = new THREE.PLYLoader();
     loader.load( url, function ( geometry ) {
         geometry.computeVertexNormals();
-        var material = new THREE.MeshStandardMaterial( { color: 0xffffff, flatShading: true } );
+        var material = new THREE.MeshStandardMaterial( { color: 0xffffff, flatShading: false, vertexColors: THREE.VertexColors } );
         
         var roomMesh = new THREE.Mesh( geometry, material );
         // roomMesh.position.y =  0.0;

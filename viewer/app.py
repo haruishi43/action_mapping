@@ -23,7 +23,7 @@ socketio = SocketIO(app)
 
 class PoseObjectGetter:
     """Pose iterator"""
-    def __init__(self, file_dir='../data/20180913_1908'):
+    def __init__(self, file_dir='../data/test/20181107_1652'):
         self.data_path = os.path.join(dir_path, file_dir)
         files = os.listdir(self.data_path)
         self.filenames = sorted(files, key=lambda f: int(''.join(filter(str.isdigit, f))))
@@ -113,7 +113,7 @@ class PoseObjectGetter:
 
 
 
-getter = PoseObjectGetter(file_dir='../data_2/20180913_1908')
+getter = PoseObjectGetter(file_dir='../data/test/20181107_1750')
 
 
 ##########################################################################################################################

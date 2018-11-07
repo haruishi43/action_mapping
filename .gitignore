@@ -2,6 +2,7 @@ data
 data_2
 data_mask
 static_data
+viewer/static/models
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
