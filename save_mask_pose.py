@@ -10,8 +10,8 @@ import cv2
 import open3d as o3
 
 from open3d_chain import Open3D_Chain
-from getter_models import MaskRCNN, OpenPose, coco_label_names, JointType, extracting_ids
-from utils import DataManagement
+from getter_models import MaskRCNN, OpenPose, JointType
+from utils import EventDataManagement, object_dict, event_ids, event_names
 
 
 def convert2world(coord, P):
@@ -85,10 +85,10 @@ def get_object(depths, K, P, labels, masks, scores):
 
     for i, label in enumerate(labels):
 
-        if label not in extracting_ids:
+        if label not in object_dict:
             continue
 
-        name = coco_label_names[label]
+        name = object_dict[label]
         
         if scores[i] < 0.75:
             continue
@@ -146,17 +146,23 @@ def get_object(depths, K, P, labels, masks, scores):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Pose Getter')
+    parser.add_argument('--event', type=int, default=1, help='Event ID')
     parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
     parser.add_argument('--save', default= './data_mask',help='relative data path from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     print('Getting data from: {}'.format(args.data))
+    print('Saving data to: {}'.format(args.save))
+    event_id = args.event
+    assert event_id in event_ids, 'Event should not be saved!!!!'
+    event_name = event_names[event_id]
+    print('Event: {}'.format(event_name))
+
     # saving to mnt
-    print('Save data to: {}'.format(args.save))
-    dm = DataManagement(args.data, args.save)
-    after = dt(2018, 9, 9, 13, 7, 0)
-    before = dt(2018, 9, 9, 13, 9, 0)
+    dm = EventDataManagement(event_name, args.data, args.save)
+    after = dt(2018, 11, 7, 0, 0, 0)
+    before = dt(2018, 11, 8, 0, 0, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params
@@ -225,12 +231,11 @@ if __name__ == "__main__":
                         continue
                     else:
                         np.savez_compressed(file_save_path, masks=dict_masks)
-                        print("saved")
+                        print("saved_obj")
                 else:
                     if not len(dict_masks):
                         np.savez_compressed(file_save_path, poses=dict_poses)
+                        print("saved_poses")
                     else:
                         np.savez_compressed(file_save_path, poses=dict_poses, masks=dict_masks)
-
-                    print("saved")
-                
+                        print("saved_all")

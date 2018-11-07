@@ -5,8 +5,10 @@ import numpy as np
 import cv2
 
 from pyrs import PyRS
-from getter_models import MaskRCNN, coco_label_names, extracting_ids
+from getter_models import MaskRCNN
+from utils import object_dict
 
+object_ids = object_dict.keys()
 
 
 def process_one(color_image, depths_image, bboxes, labels, scores, masks, item_index):
@@ -14,7 +16,7 @@ def process_one(color_image, depths_image, bboxes, labels, scores, masks, item_i
     items = np.where(labels == item_index)[0]
     if items.any():
         for item in items:
-            name = coco_label_names[item_index]
+            name = object_dict[item_index]
             item_mask = masks[item]
             item_depth = np.multiply(depths_image, item_mask)
             all_depths = np.add(all_depths, item_depth)
@@ -33,17 +35,16 @@ def process_all(color_image, depths_image, bboxes, labels, scores, masks):
 
     if len(labels):
         for i, label in enumerate(labels):
-            if label not in extracting_ids:
-                continue
             
-            name = coco_label_names[label]
-            item_mask = masks[i]
-            item_depth = np.multiply(depths_image, item_mask)
-            all_depths = np.add(all_depths, item_depth)
-            # beautify:
-            y1, x1, y2, x2 = [int(n) for n in bboxes[i]]
-            cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
-            cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
+            if label in object_dict:
+                name = object_dict[label]
+                item_mask = masks[i]
+                item_depth = np.multiply(depths_image, item_mask)
+                all_depths = np.add(all_depths, item_depth)
+                # beautify:
+                y1, x1, y2, x2 = [int(n) for n in bboxes[i]]
+                cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
+                cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
 
         all_depths *= 255 / all_depths.max()
 
@@ -56,8 +57,9 @@ if __name__ == '__main__':
 
     w = 1280
     h = 720
-    name = 'chair'
-    item_index = coco_label_names.index(name)
+
+    item_index = 1
+    name = object_dict[item_index]
     
     with PyRS(w=w, h=h) as pyrs:
         print('Modes:')

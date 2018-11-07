@@ -5,9 +5,8 @@ import numpy as np
 from datetime import datetime as dt
 
 from open3d_chain import Open3D_Chain
-from getter_models import coco_label_colors
 import utils
-from utils import DataManagement, poses_masks_from_npz
+from utils import DataManagement, poses_masks_from_npz, coco_label_colors
 
 
 

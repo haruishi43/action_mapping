@@ -8,7 +8,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from utils import DataManagement, poses_masks_from_npz
+from utils import *
 from getter_models import *
 
 

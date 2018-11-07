@@ -7,8 +7,7 @@ import sys
 import os
 import time
 
-from getter_models import coco_label_colors
-from utils import poses_masks_from_npz
+from utils import poses_masks_from_npz, coco_label_colors
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -228,7 +227,7 @@ if __name__ == '__main__':
     print('Getting data from: {}'.format(data_path))
 
     # Load room
-    room_ply = os.path.join(static_path, 'room_A.ply')
+    room_ply = os.path.join(static_path, '11_02_room_edited.ply')
     pc_room = o3.read_point_cloud(room_ply)
 
     # initialize visualizer
