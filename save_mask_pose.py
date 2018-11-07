@@ -1,3 +1,9 @@
+'''
+Save pose data and object (Mask point clouds) to numpy zip files 
+for creating action maps.
+'''
+
+
 import os
 import argparse
 import multiprocessing as mp

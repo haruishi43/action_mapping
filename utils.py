@@ -408,7 +408,6 @@ class EventDataManagement(FileManagement):
         return os.path.join(self.save_event_path, self._datetime2string(datetime))
 
 
-
 #######################################################################################################
 # Supporting Functions
 #######################################################################################################

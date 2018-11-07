@@ -1,3 +1,9 @@
+'''
+Save pose data and object (center point and bounding box) to numpy zip files 
+for rendering to viewer.
+'''
+
+
 import os
 import argparse
 import multiprocessing as mp
