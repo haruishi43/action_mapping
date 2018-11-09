@@ -41,6 +41,7 @@
 		<script src="{{ url_for('static', filename='js/loaders/PLYLoader.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/controls/OrbitControls.js') }}"></script> 
 		<script src="{{ url_for('static', filename='js/Detector.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/actionRecognition.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/initializations.js') }}"></script>
 		<script src="{{ url_for('static', filename='js/pose.js') }}"></script>
@@ -68,6 +69,9 @@
 			var jointGroup = [];
 			var limbGroup = [];
 			var centerGroup = {};
+
+			var cups = {};
+			var drinkAction;
 			
 			// Main Room Model
 			var roomModelURL = "{{ url_for('static', filename='models/ply/binary/11_02_room_edited.ply') }}";
@@ -115,6 +119,8 @@
 			var lastClear = 0; // timestamp of the last render() call
 			var interval = 0.05; // 1/frame rate
 
+			var lastAction = 0;
+
 			function animate(now) {  // requestAnimationFrame has a call back for time (which is `now`)
 
 				if(!last || now - last >= interval*1000) {
@@ -124,6 +130,8 @@
 					}
 				}
 
+
+				// Object detection
 				if(!lastClear || now - lastClear >= 2*1000) {
 					lastClear = now;
 					
@@ -140,6 +148,22 @@
 
 					centerGroup = {};
 				}
+
+				if(!lastAction || now - lastAction >= 1*1000) {
+					lastAction = now;
+
+					removeDrinkText();
+					
+					for (var key in cups) {
+
+						//console.log(jointGroup[0][0].position);
+						// console.log(key)
+						
+						detectDrinkAction(jointGroup[0][0].position, cups[key]);
+
+					}
+				}
+
 
 				if (!(state.renderRoom === animationFlags.renderRoom)) {
 					if (!(room === undefined)) {

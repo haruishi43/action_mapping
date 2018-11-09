@@ -183,8 +183,8 @@ if __name__ == "__main__":
 
     # saving to mnt
     dm = EventDataManagement(event_name, args.data, args.save)
-    after = dt(2018, 11, 7, 0, 0, 0)
-    before = dt(2018, 11, 8, 0, 0, 0)
+    after = dt(2018, 11, 7, 19, 56, 0)
+    before = dt(2018, 11, 7, 19, 57, 0)
     datetimes = dm.get_datetimes_in(after, before)
 
     # camera params

@@ -113,7 +113,7 @@ class PoseObjectGetter:
 
 
 
-getter = PoseObjectGetter(file_dir='../data/test/20181107_1751')
+getter = PoseObjectGetter(file_dir='../data/coffee break/20181107_1956')
 
 
 ##########################################################################################################################

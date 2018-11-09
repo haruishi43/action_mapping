@@ -94,6 +94,8 @@ function initHuman() {
 function updateJoints(index, pose) {
     // call this function when new pose needs to be added
     
+    var dontShow = [9, 10, 12, 13];
+    
     for (var i=0; i<jointColors.length; i++) {
         var id = i.toString();
         if (typeof pose[id] === "undefined") {
@@ -103,8 +105,12 @@ function updateJoints(index, pose) {
             var x = pose[id][0];
             var y = pose[id][1];
             var z = pose[id][2];
-
-            jointGroup[index][i].visible = true;
+            
+            if (dontShow.includes(i)) {
+                jointGroup[index][i].visible = false;
+            } else {
+                jointGroup[index][i].visible = true;
+            }
             jointGroup[index][i].position.set(x, y, z);
         }
     }
@@ -118,8 +124,11 @@ function updateJoints(index, pose) {
         limbGroup[index][j].geometry.verticesNeedUpdate = true;
         limbGroup[index][j].computeLineDistances();
         if (ids.includes(n1) && ids.includes(n2)) {
-            
-            limbGroup[index][j].visible = true;
+            if (dontShow.includes(parseInt(n1)) || dontShow.includes(parseInt(n2))) {
+                limbGroup[index][j].visible = false;
+            } else {
+                limbGroup[index][j].visible = true;
+            }
         } else {
             limbGroup[index][j].visible = false;
         }

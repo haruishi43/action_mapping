@@ -116,7 +116,7 @@ function updateCenters(centers) {
             
             if (!(key in centerGroup)) {
                 // add text
-                createText(key, center);
+                createObjectText(key, center);
             }
 
         }
@@ -141,14 +141,14 @@ function updateBboxes(bboxes) {
     }
 }
 
-function createText(text, pos) {
+function createObjectText(text, pos) {
 
     var id_instance = cocoLabelTextToObjectID(text);
     var id = id_instance[0];
     var instance = id_instance[1];
-    var name = coco_label_names[id];
-    instance = instance.toString();
-    name = name + " " + instance;
+    var itemName = coco_label_names[id];
+    instance_string = instance.toString();
+    name = itemName + " " + instance_string;
     var color = coco_label_colors[id.toString()];
     color = color.map(function(i) { return i*255 });
 
@@ -156,7 +156,7 @@ function createText(text, pos) {
     canvas1.height = 128;
     canvas1.width = 256;
     var context1 = canvas1.getContext('2d');
-    context1.font = "Bold 40px Arial";
+    context1.font = "Bold 20px Arial";
     context1.fillStyle = "rgba("+color[0]+","+color[1]+","+color[2]+",0.9)";
     context1.fillText(name, 0, 64);
     
@@ -175,5 +175,8 @@ function createText(text, pos) {
     renderGroup.add( mesh1 );
 
     centerGroup[text] = mesh1;
+    
+    if (itemName === "cup") {
+        cups[instance] = mesh1.position;
+    }
 }
-
