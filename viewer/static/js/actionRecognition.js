@@ -23,6 +23,7 @@ function createDrinkText(pos) {
     context1.font = "Bold 40px Arial";
     context1.fillStyle = "rgba(255,255,255,1)";
     context1.fillText(actionName, 0, 64);
+    context1.textAlign = "center";
     
     // canvas contents will be used for a texture
     var texture1 = new THREE.Texture(canvas1) 

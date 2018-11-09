@@ -79,7 +79,7 @@ function initHuman() {
         lineGeometry.dynamic = true;
         lineGeometry.verticesNeedUpdate = true;
 
-        var lineMaterial = new THREE.LineBasicMaterial( { color: lineColorHex, opacity: 0.5, linewidth: 3 } );
+        var lineMaterial = new THREE.LineBasicMaterial( { color: lineColorHex, opacity: 0.5, linewidth: 5 } );
         var line = new THREE.Line(lineGeometry, lineMaterial);
 
         renderGroup.add(line);

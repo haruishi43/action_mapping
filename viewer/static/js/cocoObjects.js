@@ -156,9 +156,10 @@ function createObjectText(text, pos) {
     canvas1.height = 128;
     canvas1.width = 256;
     var context1 = canvas1.getContext('2d');
-    context1.font = "Bold 20px Arial";
+    context1.font = "Bold 14px Arial";
     context1.fillStyle = "rgba("+color[0]+","+color[1]+","+color[2]+",0.9)";
-    context1.fillText(name, 0, 64);
+    context1.fillText(name, 128, 64);
+    context1.textAlign = "center";
     
     // canvas contents will be used for a texture
     var texture1 = new THREE.Texture(canvas1) 

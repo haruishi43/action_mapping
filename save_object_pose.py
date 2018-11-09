@@ -168,7 +168,7 @@ def get_object(depths, K, P, labels, masks, scores):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Object Pose Getter')
     parser.add_argument('--event', type=int, default=1, help='Event ID')
-    parser.add_argument('--data', default= '/mnt/extHDD/raw_data',help='relative data path from where you use this program')
+    parser.add_argument('--data', default= '/media/haruyaishikawa/new_disk/raw_data',help='relative data path from where you use this program')
     parser.add_argument('--save', default= './data',help='relative data path from where you use this program')
     parser.add_argument('--gpu', '-g', type=int, default=0, help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()

@@ -11,7 +11,7 @@ from datetime import timedelta
 #######################################################################################################
 
 event_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-event_names = ['other', 'eating', 'meeting', 'coffee break', 'sleeping', 'cooking', 'working', 'party', 'tending to plants', 'test']
+event_names = ['other', 'lunch', 'meeting', 'coffee break', 'sleeping', 'cooking', 'working', 'party', 'tending to plants', 'test']
 
 object_dict = {
     1: 'person',
@@ -187,11 +187,11 @@ Directory name:
 
 - Getting data and saving data differs...
 - Data path is always not in this format
-
+tmuxx
 '''
 
-raw_data = '/mnt/extHDD/raw_data/'
-save_data = '/mnt/extHDD/save_data/'
+raw_data = '/media/haruyaishikawa/new_disk/raw_data' # '/mnt/extHDD/raw_data/'
+save_data = '/media/haruyaishikawa/new_disk/save_data' # '/mnt/extHDD/save_data/'
 RGB = 'rgb'
 DEPTH = 'depth'
 

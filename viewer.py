@@ -215,7 +215,7 @@ class CustomVisualizer:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Pose Getter')
-    parser.add_argument('--data', default= '/mnt/extHDD/save_data/20180913_1908/',help='relative data path from where you use this program')
+    parser.add_argument('--data', default= '/media/haruyaishikawa/new_disk/raw_data/20180913_1908/',help='relative data path from where you use this program')
     parser.add_argument('--static', default='static_data', help='static data location')
     args = parser.parse_args()
 
