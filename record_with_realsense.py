@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 
 from pyrs import PyRS
-from utils import DataSaver, event_names, event_ids
+from utils import DataSaver, ShortClipSaver, event_names, event_ids
 
 
 
@@ -23,7 +23,8 @@ if __name__ == '__main__':
 
     print(f"saving for {event_name}")
     root = "data"
-    dm = DataSaver(event=event_name)
+    # dm = DataSaver(event=event_name)  # segmented by time
+    dm = ShortClipSaver(event=event_name)  # for saving short clips
     
     with PyRS(w=w, h=h) as pyrs:
         print('Modes:')

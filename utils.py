@@ -10,7 +10,8 @@ from datetime import timedelta
 # Parameters
 #######################################################################################################
 
-event_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+# other class should not be added for now (assume input is in one of the class)
+event_ids = [1, 2, 3, 4, 5, 6, 8, 9]
 event_names = ['other', 'lunch', 'meeting', 'coffee break', 'sleeping', 'cooking', 'working', 'party', 'tending to plants', 'test']
 
 object_dict = {
@@ -191,7 +192,9 @@ tmuxx
 '''
 
 raw_data = '/media/haruyaishikawa/new_disk/raw_data' # '/mnt/extHDD/raw_data/'
+raw_clip_data = '/media/haruyaishikawa/new_disk/raw_clip_data'
 save_data = '/media/haruyaishikawa/new_disk/save_data' # '/mnt/extHDD/save_data/'
+save_clip_data = '/media/haruyaishikawa/new_disk/save_clip_data' 
 RGB = 'rgb'
 DEPTH = 'depth'
 
@@ -289,6 +292,64 @@ class DataSaver(FileManagement):
         if not self.check_path_exists(event_path):
             os.mkdir(event_path)
             print(f"Created directory in {event_path}")
+
+
+class ShortClipSaver(FileManagement):
+    '''Save rgb and depth image (short segments)'''
+    def __init__(self, event, save_path=raw_clip_data):
+        super().__init__()
+        self.data_root = save_path
+        self.event_path = os.path.join(save_path, event)
+        self._create_event_dir(self.event_path)
+
+        self.current_time = time.time()
+        self.count = 0
+
+        self.rgb_path = None
+        self.depth_path = None
+        self._create_sample_dir(self.event_path)
+
+    def _count_dir(self):
+        sub_dirs = self.get_subdirs(self.event_path)
+        return len(sub_dirs)
+
+    def _update(self):
+        if self.count > 700:
+            self.count = 0
+            self._create_sample_dir(self.event_path)
+
+        
+    def _also_create_image_path(self, path):
+        rgb_path = os.path.join(path, RGB)
+        depth_path = os.path.join(path, DEPTH)
+        os.mkdir(rgb_path)
+        os.mkdir(depth_path)
+
+        self.rgb_path = rgb_path
+        self.depth_path = depth_path
+
+    def get_rgb_depth_filename(self):
+        self._update()
+        print(self.count)
+        rgb_name = os.path.join(self.rgb_path, str(self.count)+'.png')
+        depth_name = os.path.join(self.depth_path, str(self.count)+'.png')
+        self.count += 1
+        return rgb_name, depth_name
+
+    def _create_event_dir(self, event_path):
+        if not self.check_path_exists(event_path):
+            os.mkdir(event_path)
+            print(f"Created directory in {event_path}")
+
+    def _create_sample_dir(self, event_path):
+        num_sdirs = self._count_dir()  # this becomes the name of the directory
+        full_path = os.path.join(event_path, str(num_sdirs))
+
+        os.mkdir(full_path)
+        self._also_create_image_path(full_path)
+
+        print(f"Created directory in {full_path}")
+
 
 
 class DataManagement(FileManagement):
@@ -408,6 +469,60 @@ class EventDataManagement(FileManagement):
         return os.path.join(self.save_event_path, self._datetime2string(datetime))
 
 
+class ShortClipManagement(FileManagement):
+
+    def __init__(self, event, root=raw_clip_data, save_path=save_clip_data):
+        super().__init__()
+        assert self.check_path_exists(root), "Path {} doesn't exists!".format(root)
+        assert self.check_path_exists(save_path), "Path {} doesn't exists!".format(save_path)
+
+        self.root = root
+        self.save_path = save_path
+
+        # self.change_event(event)  # change event 
+
+    def _get_event_path(self, loc, event):
+        event_path = os.path.join(loc, event)
+        return event_path
+    
+    def change_event(self, event):
+        self.event = event
+
+        # Set event path
+        self.root_event_path = self._get_event_path(self.root, self.event)
+        self.save_event_path = self._get_event_path(self.save_path, self.event)
+
+        ## Get clips
+        self.clips = self.natural_sort(os.listdir(self.root_event_path))
+
+        print(f"Using Event {self.event}")
+        print("Available clips")
+        print(self.clips)
+
+        return self.clips
+
+    def get_rgb_path(self, clip_name):
+        ''''Get rgb path for specified clip'''
+        path = os.path.join(self.root_event_path, clip_name)
+        return os.path.join(path, RGB)
+
+    def get_depth_path(self, clip_name):
+        ''''Get depth path for specified clip'''
+        path = os.path.join(self.root_event_path, clip_name)
+        return os.path.join(path, DEPTH)
+
+    def get_rgb_images(self, clip_name):
+        return os.listdir(self.get_rgb_path(clip_name))
+
+    def get_sorted_rgb_images(self, clip_name):
+        files = self.get_rgb_images(clip_name)
+        return self.natural_sort(files)
+
+    def get_save_dir_of_clip(self, clip_name):
+        return os.path.join(self.save_event_path, clip_name)
+
+
+
 #######################################################################################################
 # Supporting Functions
 #######################################################################################################
@@ -479,5 +594,18 @@ def test_events():
     print(dm.get_sorted_rgb_images(between[0]))
 
 
+def test_short_clips():
+
+    dm = ShortClipManagement(event='test')
+
+    event_name = 'test'
+    clips = dm.change_event(event_name)
+
+    clip_name = clips[0]
+
+    rgb_images = dm.get_sorted_rgb_images(clip_name)
+    print(rgb_images)
+
+
 if __name__ == '__main__':
-    test_events()
+    test_short_clips()
