@@ -23,8 +23,8 @@ if __name__ == '__main__':
 
     print(f"saving for {event_name}")
     root = "data"
-    # dm = DataSaver(event=event_name)  # segmented by time
-    dm = ShortClipSaver(event=event_name)  # for saving short clips
+    dm = DataSaver(event=event_name)  # segmented by time
+    # dm = ShortClipSaver(event=event_name)  # for saving short clips
     
     with PyRS(w=w, h=h) as pyrs:
         print('Modes:')
