@@ -12,7 +12,7 @@ from datetime import timedelta
 
 # other class should not be added for now (assume input is in one of the class)
 event_ids = [1, 2, 3, 4, 5, 6, 8, 9]
-event_names = ['other', 'meal time', 'meeting', 'coffee break', 'sleeping', 'cooking', 'working', 'party', 'tending to plants', 'test']
+event_names = ['other', 'meal time', 'meeting', 'coffee break', 'nap', 'cooking', 'working', 'party', 'tending to plants', 'test']
 
 object_dict = {
     1: 'person',
