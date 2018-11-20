@@ -11,7 +11,7 @@ from datetime import timedelta
 #######################################################################################################
 
 # other class should not be added for now (assume input is in one of the class)
-event_ids = [1, 2, 3, 4, 5, 6, 8, 9]
+event_ids = [1, 2, 3, 4, 5, 6, 8]
 event_names = ['other', 'meal time', 'meeting', 'coffee break', 'nap', 'cooking', 'working', 'party', 'tending to plants', 'test']
 
 object_dict = {
@@ -318,7 +318,6 @@ class ShortClipSaver(FileManagement):
             self.count = 0
             self._create_sample_dir(self.event_path)
 
-        
     def _also_create_image_path(self, path):
         rgb_path = os.path.join(path, RGB)
         depth_path = os.path.join(path, DEPTH)
@@ -479,7 +478,7 @@ class ShortClipManagement(FileManagement):
         self.root = root
         self.save_path = save_path
 
-        # self.change_event(event)  # change event 
+        self.change_event(event)  # change event 
 
     def _get_event_path(self, loc, event):
         event_path = os.path.join(loc, event)
@@ -518,11 +517,73 @@ class ShortClipManagement(FileManagement):
         files = self.get_rgb_images(clip_name)
         return self.natural_sort(files)
 
-    def get_save_dir_of_clip(self, clip_name):
-        return os.path.join(self.save_event_path, clip_name)
+    def _make_clip_directory(self, clip_name):
+        clip_dir = os.path.join(self.save_event_path, clip_name)
+        if not self.check_path_exists(clip_dir):
+            print('Making a save directory in: {}'.format(clip_dir))
+            os.makedirs(clip_dir)
+        else:
+            print("Directory exists")
+        return clip_dir
+    
+    def get_save_clip_directory(self, clip_name):
+        return self._make_clip_directory(clip_name)
+        
 
+class ClipsSavedDataManagement(FileManagement):
+    def __init__(self, event, root_path=save_clip_data):
+        super().__init__()
+        assert self.check_path_exists(root_path), "Path {} doesn't exists!".format(root_path)
 
+        self.root = root_path
 
+        self.change_event(event)  # change event 
+
+    def _get_event_path(self, loc, event):
+        event_path = os.path.join(loc, event)
+        return event_path
+    
+    def change_event(self, event):
+        self.event = event
+
+        # Set event path
+        self.root_event_path = self._get_event_path(self.root, self.event)
+
+        ## Get clips
+        self.clips = self.natural_sort(os.listdir(self.root_event_path))
+
+        print(f"Using Event {self.event}")
+        print("Available clips")
+        print(self.clips)
+
+        return self.clips
+
+    def get_clip_path(self, clip_name):
+        ''''Get rgb path for specified clip'''
+        return os.path.join(self.root_event_path, clip_name)
+
+    def get_npz_files(self, clip_name):
+        return os.listdir(self.get_clip_path(clip_name))
+
+    def get_sorted_npz_files(self, clip_name):
+        files = self.get_npz_files(clip_name)
+        return self.natural_sort(files)
+    
+    def get_clip_directory(self, clip_name):
+        return os.path.join(self.root_event_path, clip_name)
+
+    def _make_eventmap_directory(self, clip_name):
+        clip_dir = os.path.join(self.root_event_path, clip_name)
+        if not self.check_path_exists(clip_dir):
+            print('Making eventmap directory in: {}'.format(clip_dir))
+            os.makedirs(clip_dir)
+        else:
+            print("Directory exists")
+        return clip_dir
+    
+    def get_eventmap_directory(self, clip_name):
+        return self._make_eventmap_directory(clip_name)
+    
 #######################################################################################################
 # Supporting Functions
 #######################################################################################################

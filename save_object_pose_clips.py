@@ -7,7 +7,6 @@ for rendering to viewer.
 import os
 import argparse
 import multiprocessing as mp
-from datetime import datetime as dt
 import time
 from collections import defaultdict
 
@@ -180,11 +179,10 @@ if __name__ == "__main__":
     event_name = event_names[event_id]
     print('Event: {}'.format(event_name))
 
+
     # saving to mnt
-    dm = EventDataManagement(event_name, args.data, args.save)
-    after = dt(2018, 11, 7, 19, 56, 0)
-    before = dt(2018, 11, 7, 19, 57, 0)
-    datetimes = dm.get_datetimes_in(after, before)
+    dm = ShortClipManagement(event_name, args.data, args.save)
+    clips = dm.change_event(event_name)
     
     # camera params
     o3_chain = Open3D_Chain()
@@ -195,29 +193,23 @@ if __name__ == "__main__":
     maskrcnn = MaskRCNN(args.gpu)
     openpose = OpenPose(args.gpu)
     
-    for datetime in datetimes:
+    for clip in clips:
 
-        datetime_save_dir = dm.get_save_directory(datetime)
+        clip_save_dir = dm.get_save_clip_directory(clip)
 
-        if not dm.check_path_exists(datetime_save_dir):
-            print('Making a save directory in: {}'.format(datetime_save_dir))
-            os.makedirs(datetime_save_dir)
-        else:
-            print("Directory exists")
-
-        rgb_path = dm.get_rgb_path(datetime)
-        depth_path = dm.get_depth_path(datetime)
+        rgb_path = dm.get_rgb_path(clip)
+        depth_path = dm.get_depth_path(clip)
 
         # sort rgb files before looping
         # order matters!
-        filenames = dm.get_sorted_rgb_images(datetime)
+        filenames = dm.get_sorted_rgb_images(clip)
     
         # loop
         for fn in filenames:
             if fn.endswith(".png"): 
                 print('\nimage: ', fn)
                 filename = fn.split('.')[0] + '.npz'
-                file_save_path = os.path.join(datetime_save_dir, filename)
+                file_save_path = os.path.join(clip_save_dir, filename)
 
                 if dm.check_path_exists(file_save_path):
                     print("File exists")
