@@ -113,6 +113,10 @@ def get_object(depths, K, P, labels, masks, scores):
         total = mask_flattened.shape[0]
         non_zero_total = non_zero_indicies.shape[0]
         ratio = (total - non_zero_total)/total
+
+        if non_zero_total == 0:
+            # when there are no mask...
+            continue
         
         if non_zero_total > 100000:
             ratio = 0.01*ratio

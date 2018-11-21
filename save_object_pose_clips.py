@@ -114,6 +114,11 @@ def get_object(depths, K, P, labels, masks, scores):
 
         total = mask_flattened.shape[0]
         non_zero_total = non_zero_indicies.shape[0]
+
+        if non_zero_total == 0:
+            # when there are no mask...
+            continue
+
         ratio = (total - non_zero_total)/total
         
         if non_zero_total > 100000:
@@ -124,6 +129,7 @@ def get_object(depths, K, P, labels, masks, scores):
             ratio = 1
 
         sample_number = int(ratio*non_zero_total)
+
 
         random_indicies = np.random.choice(non_zero_total,  sample_number)
         non_zero_indicies = non_zero_indicies[random_indicies]
