@@ -583,7 +583,8 @@ class ClipsSavedDataManagement(FileManagement):
     
     def get_eventmap_directory(self, clip_name):
         return self._make_eventmap_directory(clip_name)
-    
+
+
 #######################################################################################################
 # Supporting Functions
 #######################################################################################################
