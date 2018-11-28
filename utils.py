@@ -6,6 +6,8 @@ import numpy as np
 from datetime import datetime as dt
 from datetime import timedelta
 
+from openpose import params, JointType
+
 #######################################################################################################
 # Parameters
 #######################################################################################################
@@ -14,10 +16,48 @@ from datetime import timedelta
 event_ids = [1, 2, 3, 4, 5, 6, 8]
 event_names = ['other', 'meal time', 'meeting', 'coffee break', 'nap', 'cooking', 'working', 'party', 'tending to plants', 'test']
 
+# tracking dict  #=13
+eventmap_item_names = ['person', 'drink', 'utensil', 'bowl', 'chair', 'potted plant', 'dining table', 'laptop', 'cell phone', 'microwave', 'sink', 'refridgerator', 'book']
+
+# dict for eventmap objects  (just removed unwanted items)
+eventmap_object_dict = {
+    'person': [1],
+    'bottle': [44],
+    'cup': [46, 47],
+    'utensil': [48, 49, 50],
+    'bowl': [51],
+    'chair': [62],
+    'potted plant': [64],
+    'dining table': [67],
+    'laptop': [73],
+    'cell phone': [77],
+    'microwave': [78],
+    'sink': [81],
+    'refridgerator': [82],
+    'book': [84]
+}
+
+# dict for eventmap 
+eventmap_pose_dict = {
+    'hands': [JointType.LeftHand.value, 
+              JointType.RightHand.value],
+    'legs': [JointType.LeftFoot.value, 
+             JointType.LeftKnee.value, 
+             JointType.RightFoot.value, 
+             JointType.RightKnee.value],
+    'body': [JointType.LeftShoulder.value, 
+             JointType.LeftWaist.value,
+             JointType.RightShoulder.value,
+             JointType.RightWaist.value],
+    'head': [JointType.LeftEye.value,
+             JointType.RightEye.value,
+             JointType.Nose.value]
+}
+
 object_dict = {
     1: 'person',
     27: 'bag', 31: 'bag', 33: 'bag',
-    44: 'drink', 46: 'drink', 47: 'drink',
+    44: 'bottle', 46: 'cup', 47: 'cup',
     48: 'utensil', 49: 'utensil', 50: 'utensil',
     51: 'bowl',
     52: 'food', 53: 'food', 54: 'food', 55: 'food', 59: 'food', 60: 'food', 61: 'food',
@@ -191,6 +231,7 @@ Directory name:
 tmuxx
 '''
 
+ROOT = '/media/haruyaishikawa/new_disk/'
 raw_data = '/media/haruyaishikawa/new_disk/raw_data' # '/mnt/extHDD/raw_data/'
 raw_clip_data = '/media/haruyaishikawa/new_disk/raw_clip_data'
 save_data = '/media/haruyaishikawa/new_disk/save_data' # '/mnt/extHDD/save_data/'
@@ -200,7 +241,12 @@ DEPTH = 'depth'
 
 
 class FileManagement:
+    
     def __init__(self):
+        '''
+        Base
+        '''
+        
         pass
 
     def check_path_exists(self, path):
@@ -240,8 +286,9 @@ class FileManagement:
 
 
 class DataSaver(FileManagement):
-    '''Save rgb and depth image'''
+    
     def __init__(self, event, save_path=raw_data):
+        '''Save rgb and depth image'''
         super().__init__()
         self.data_root = save_path
         self.event_path = os.path.join(save_path, event)
@@ -295,8 +342,9 @@ class DataSaver(FileManagement):
 
 
 class ShortClipSaver(FileManagement):
-    '''Save rgb and depth image (short segments)'''
+    
     def __init__(self, event, save_path=raw_clip_data):
+        '''Save rgb and depth image (short segments)'''
         super().__init__()
         self.data_root = save_path
         self.event_path = os.path.join(save_path, event)
@@ -353,6 +401,9 @@ class ShortClipSaver(FileManagement):
 
 class DataManagement(FileManagement):
     def __init__(self, root=raw_data, save_root=save_data):
+        '''
+        Currently wont use
+        '''
         super().__init__()
         assert self.check_path_exists(root), "Path {} doesn't exists!".format(root)
         assert self.check_path_exists(save_root), "Path {} doesn't exists!".format(save_root)
@@ -407,6 +458,13 @@ class DataManagement(FileManagement):
 class EventDataManagement(FileManagement):
 
     def __init__(self, event, root=raw_data, save_path=save_data):
+        '''
+        Used for managing Event Clips
+        
+        - Save mask and pose
+        
+        Currently wont use
+        '''
         super().__init__()
         assert self.check_path_exists(root), "Path {} doesn't exists!".format(root)
         assert self.check_path_exists(save_path), "Path {} doesn't exists!".format(save_path)
@@ -470,7 +528,15 @@ class EventDataManagement(FileManagement):
 
 class ShortClipManagement(FileManagement):
 
-    def __init__(self, event, root=raw_clip_data, save_path=save_clip_data):
+    def __init__(self, event=None, root=raw_clip_data, save_path=save_clip_data):
+        '''
+        Used for managing Short Clips
+        
+        - Save mask and pose
+        - Resize and make a smaller dataset
+        - etc
+        '''
+        
         super().__init__()
         assert self.check_path_exists(root), "Path {} doesn't exists!".format(root)
         assert self.check_path_exists(save_path), "Path {} doesn't exists!".format(save_path)
@@ -478,7 +544,10 @@ class ShortClipManagement(FileManagement):
         self.root = root
         self.save_path = save_path
 
-        self.change_event(event)  # change event 
+        if event is None:
+            print('Need to select event later')
+        else:
+            self.change_event(event)  # change event 
 
     def _get_event_path(self, loc, event):
         event_path = os.path.join(loc, event)
@@ -520,7 +589,7 @@ class ShortClipManagement(FileManagement):
     def _make_clip_directory(self, clip_name):
         clip_dir = os.path.join(self.save_event_path, clip_name)
         if not self.check_path_exists(clip_dir):
-            print('Making a save directory in: {}'.format(clip_dir))
+            print(f'Making a save directory in: {clip_dir}')
             os.makedirs(clip_dir)
         else:
             print("Directory exists")
@@ -528,10 +597,24 @@ class ShortClipManagement(FileManagement):
     
     def get_save_clip_directory(self, clip_name):
         return self._make_clip_directory(clip_name)
+    
+    def get_save_event_directory(self):
+        
+        if not self.check_path_exists(self.save_event_path):
+            print(f'Making a save directory in: {self.save_event_path}')
+            os.makedirs(self.save_event_path)
+        else:
+            print("Directory exists")
+        
+        return self.save_event_path
         
 
 class ClipsSavedDataManagement(FileManagement):
     def __init__(self, event, root_path=save_clip_data):
+        '''
+        Used for saving event maps from mask and pose
+        '''
+        
         super().__init__()
         assert self.check_path_exists(root_path), "Path {} doesn't exists!".format(root_path)
 
@@ -572,19 +655,19 @@ class ClipsSavedDataManagement(FileManagement):
     def get_clip_directory(self, clip_name):
         return os.path.join(self.root_event_path, clip_name)
 
-    def _make_eventmap_directory(self, clip_name):
-        clip_dir = os.path.join(self.root_event_path, clip_name)
-        if not self.check_path_exists(clip_dir):
-            print('Making eventmap directory in: {}'.format(clip_dir))
-            os.makedirs(clip_dir)
-        else:
-            print("Directory exists")
-        return clip_dir
+#    def _make_eventmap_directory(self, clip_name):
+#        clip_dir = os.path.join(self.root_event_path, clip_name)
+#       if not self.check_path_exists(clip_dir):
+#           print('Making eventmap directory in: {}'.format(clip_dir))
+#             os.makedirs(clip_dir)
+#         else:
+#             print("Directory exists")
+#         return clip_dir
+#     
+#     def get_eventmap_directory(self, clip_name):
+#         return self._make_eventmap_directory(clip_name)
+
     
-    def get_eventmap_directory(self, clip_name):
-        return self._make_eventmap_directory(clip_name)
-
-
 #######################################################################################################
 # Supporting Functions
 #######################################################################################################

@@ -149,7 +149,110 @@ def show_location_map(points, name):
     # ax.images.append(im)
     plt.show()
 
+    
+# in milimeters
+y_min = -2500
+y_max = 1500
+x_min = -2500
+x_max = 1500
+bin_x = 100
+bin_y = 100
+
+sigma = 0.7
+
+xedges = [i for i in range(x_min, x_max, bin_x)]
+yedges = [i for i in range(y_min, y_max, bin_y)]
+    
+def show_location_map_new(points, name):
+    xedges = [i for i in range(x_min, x_max, bin_x)]
+    yedges = [i for i in range(y_min, y_max, bin_y)]
+
+    x = points[0][~np.isnan(points[0])]
+    y = points[1][~np.isnan(points[1])]
+    z = points[2][~np.isnan(points[2])]
+    
+    # empty.
+#     x = []
+#     y = []
+    
+    H, xedges, yedges = np.histogram2d(x, y, bins=(xedges, yedges))
+    H = H.T
+    
+    # gaussian filter
+    H = gaussian_filter(H, sigma=sigma)
+    print(H.max())
+    
+    # normalize
+    if H.max() != 0:
+        H = H/H.max()
+    
+    # color map?
+    cmap = mpl.colors.ListedColormap(['grey','red'])
+
+    fig = plt.figure()
+
+    ax = fig.add_subplot(111, title=name,
+                        aspect='equal')
+    X, Y = np.meshgrid(xedges, yedges)
+    ax.pcolormesh(X, Y, H, cmap=colormap, vmin=0.0, vmax=1.0)
+    # ax.pcolor(X, Y, H)
+
+    plt.show()
 
 
+def calc_mean_object():
+    mean_of_points = []
+    for i, f in enumerate(files):
+        filename = os.path.join(manager.get_clip_directory(clip), f)
+        _, masks = poses_masks_from_npz(filename)
+
+        if masks is None:
+            continue
+
+        item_number = [i for i, j in object_dict.items() if j == ob_name]
+
+        for mask in masks:
+
+            # TODO:
+            # get string name
+            # check if the first digit is some class
+            # if so, append the mean
+            id = int(mask.split('_')[0])
+            if id in item_number:
+                mean = masks[mask].mean(0)
+                mean_of_points.append(mean)
+
+    mp = np.asarray(mean_of_points)
+    if mp.any() == False:
+        print("no such object ", ob_name, " detected")
+        mp = np.empty((3, 1))
+        mp[:] = np.nan
+    else:
+        mp = np.rollaxis(mp, 1)
+
+        
+def save_location_map(points, name):
+    xedges = [i for i in range(x_min, x_max, bin_x)]
+    yedges = [i for i in range(y_min, y_max, bin_y)]
+
+    x = points[0][~np.isnan(points[0])]
+    y = points[1][~np.isnan(points[1])]
+    # z = points[2][~np.isnan(points[2])]
+
+    H, xedges, yedges = np.histogram2d(x, y, bins=(xedges, yedges))
+    H = H.T
+    
+    H = gaussian_filter(H, sigma=sigma)  # gaussian blur
+    H = H/H.max()  # normalize from 0 - 1 (1 is H.max())
+    
+    H_pix = (H * 255.9).astype(np.uint8)
+    
+    # y-axis becomes lowest to highest
+    H_flipped = np.flipud(H_pix)
+    
+    img = Image.fromarray(H_flipped)
+    img.save(f'{name}.png')
+    
+    
 if __name__ == '__main__':
     main()
