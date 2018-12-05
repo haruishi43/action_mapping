@@ -16,8 +16,10 @@ from openpose import params, JointType
 event_ids = [1, 2, 3, 4, 5, 6, 8]
 event_names = ['other', 'meal time', 'meeting', 'coffee break', 'nap', 'cooking', 'working', 'party', 'tending to plants', 'test']
 
-# tracking dict  #=13
-eventmap_item_names = ['person', 'drink', 'utensil', 'bowl', 'chair', 'potted plant', 'dining table', 'laptop', 'cell phone', 'microwave', 'sink', 'refridgerator', 'book']
+eventmap_pose_names = ['hands', 'legs', 'body', 'head']
+
+# tracking dict  #=15
+eventmap_item_names = ['person', 'bottle', 'cup', 'utensil', 'bowl', 'chair', 'potted plant', 'dining table', 'laptop', 'cell phone', 'microwave', 'sink', 'refridgerator', 'book']
 
 # dict for eventmap objects  (just removed unwanted items)
 eventmap_object_dict = {
