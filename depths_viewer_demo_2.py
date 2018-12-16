@@ -4,7 +4,7 @@ import os
 import numpy as np
 import cv2
 
-from pyrs_old import PyRS
+from pyrs import PyRS
 from getter_models import MaskRCNN
 from utils import object_dict
 
@@ -25,12 +25,12 @@ def process_one(color_image, depths_image, bboxes, labels, scores, masks, item_i
             cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
             cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
         
-        all_depths *= 255 / all_depths.max()
+        all_depths *= 255 #/ (all_depths.max()
 
     return all_depths
     
 
-def process_all(color_image, depths_image, bboxes, labels, scores, masks):
+def process_all(color_image, depths_image, colorized_image, bboxes, labels, scores, masks):
     all_depths = np.zeros(depths_image.shape)
 
     if len(labels):
@@ -45,6 +45,8 @@ def process_all(color_image, depths_image, bboxes, labels, scores, masks):
                 y1, x1, y2, x2 = [int(n) for n in bboxes[i]]
                 cv2.rectangle(color_image, (x1, y1), (x2, y2), (0,255,0), 2)
                 cv2.putText(color_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
+                cv2.rectangle(colorized_image, (x1, y1), (x2, y2), (0,255,0), 2)
+                cv2.putText(colorized_image, name, (x1 + 10, y1 + 10), 0, 0.3, (0,255,0))
 
         all_depths *= 255 / all_depths.max()
 
@@ -65,9 +67,9 @@ if __name__ == '__main__':
         print('Modes:')
         print('\tExit:\tq')
 
-        preset = pyrs.get_depths_preset()
-        preset_name = pyrs.get_depths_preset_name(preset)
-        print('Preset: ', pyrs.get_depths_preset_name(preset))
+        preset = pyrs.get_depth_preset()
+        preset_name = pyrs.get_depth_preset_name(preset)
+        print('Preset: ', pyrs.get_depth_preset_name(preset))
 
         while True:
             # Wait for a coherent pair of frames: depth and color
@@ -75,13 +77,15 @@ if __name__ == '__main__':
 
             # Get images as numpy arrays
             color_image = pyrs.get_color_image()
-            depths_image = pyrs.get_depths_frame()
+            depths_image = pyrs.get_depth_frame()
             color = color_image.swapaxes(2, 1).swapaxes(1, 0)
+
+            colorized_depth = pyrs.get_colorized_depth_frame()
             
             bbox, label, score, mask = maskrcnn.predict(color)
             if label is not None:
                 # all_depths = process_one(color_image, depths_image, bbox, label, score, mask, item_index)
-                all_depths = process_all(color_image, depths_image, bbox, label, score, mask)
+                all_depths = process_all(color_image, depths_image, colorized_depth, bbox, label, score, mask)
             else:
                 all_depths = np.zeros([h, w])
 
@@ -91,6 +95,9 @@ if __name__ == '__main__':
             # Show image
             cv2.namedWindow('detection', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('detection', images)
+            cv2.namedWindow('color', cv2.WINDOW_AUTOSIZE)
+            cv2.imshow('color', colorized_depth)
+
             key = cv2.waitKey(10)
 
             if key == ord('q'):
