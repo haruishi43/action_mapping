@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 
-#FIXME: change name to Open3DChai
+#FIXME: change name to Open3DChain
 class Open3D_Chain:
     '''
     Open3D Chain for easy rendering
