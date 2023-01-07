@@ -12,4 +12,4 @@ This code contains the pipelines for creating Human-Object Maps (HOMs).
 
 Opoen3D | Web (threeJS)
 :-: | :-:
-<video src='.readme/open3d_viewer.mov' width=180/> | <video src='.readme/web_viewer.mov' width=180/>
+![open3d](.readme/open3d_viewer.mov) | ![web](.readme/web_viewer.mov]
